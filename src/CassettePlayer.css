@@ -1,0 +1,587 @@
+/* ==================== */
+/*  CASSETTE CONTAINER  */
+/* ==================== */
+.cassette-container {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+/* ==================== */
+/*  PLAYLIST / TRACKS   */
+/* ==================== */
+.track-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 380px;
+  max-height: 180px;
+  overflow-y: auto;
+  background: rgba(18, 18, 28, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.track-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #f0eef6;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.track-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.track-item.active {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.3);
+}
+
+.track-item.playing {
+  background: rgba(168, 85, 247, 0.2);
+  box-shadow: inset 0 0 12px rgba(168, 85, 247, 0.15);
+}
+
+.track-item-cover {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.track-item-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.track-item-play-icon {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.track-item:hover .track-item-play-icon,
+.track-item.active .track-item-play-icon {
+  opacity: 1;
+}
+
+.play-triangle {
+  font-size: 12px;
+  color: #fff;
+  margin-left: 2px;
+}
+
+/* EQ animation for active track */
+.eq-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+}
+
+.eq-bars span {
+  width: 3px;
+  background: #c084fc;
+  border-radius: 2px;
+  animation: eq-bar 0.8s ease-in-out infinite alternate;
+}
+
+.eq-bars span:nth-child(1) { height: 60%; animation-delay: 0.1s; }
+.eq-bars span:nth-child(2) { height: 100%; animation-delay: 0.3s; }
+.eq-bars span:nth-child(3) { height: 40%; animation-delay: 0.2s; }
+.eq-bars span:nth-child(4) { height: 80%; animation-delay: 0.4s; }
+
+.track-item-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+}
+
+.track-item-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f0eef6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-item.active .track-item-title {
+  color: #c084fc;
+}
+
+.track-item-artist {
+  font-size: 0.72rem;
+  color: rgba(240, 238, 246, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==================== */
+/*  CASSETTE BODY       */
+/* ==================== */
+.cassette-body {
+  width: 380px;
+  height: 210px;
+  background: linear-gradient(180deg, #2e2e3a 0%, #242430 100%);
+  border-radius: 14px 14px 10px 10px;
+  position: relative;
+  border: 2px solid #3d3d4e;
+  box-shadow:
+    inset 0 2px 6px rgba(255, 255, 255, 0.06),
+    0 8px 40px rgba(0, 0, 0, 0.6),
+    0 0 60px rgba(168, 85, 247, 0.08);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Label area */
+.cassette-label {
+  position: absolute;
+  top: 14px;
+  left: 24px;
+  right: 24px;
+  height: 72px;
+  background: linear-gradient(135deg, #1a1a26 0%, #15151f 100%);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cassette-label-lines {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  pointer-events: none;
+}
+
+.cassette-label-line {
+  height: 1px;
+  background: rgba(168, 85, 247, 0.12);
+  width: 100%;
+}
+
+.cassette-label-text {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.cassette-label-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #c084fc;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+}
+
+.cassette-label-title.scrolling {
+  animation: marquee 8s linear infinite;
+}
+
+.cassette-label-artist {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+  color: rgba(240, 238, 246, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-top: 3px;
+}
+
+/* Tape window */
+.cassette-window {
+  position: absolute;
+  top: 96px;
+  left: 55px;
+  right: 55px;
+  height: 68px;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 8px 8px 30px 30px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  overflow: hidden;
+}
+
+/* Tape between reels */
+.cassette-tape {
+  position: absolute;
+  top: 50%;
+  left: 60px;
+  right: 60px;
+  height: 2px;
+  transform: translateY(-50%);
+  z-index: 0;
+}
+
+.cassette-tape-line {
+  height: 100%;
+  background: #1a1a22;
+  position: relative;
+}
+
+.cassette-tape-line::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(168, 85, 247, 0.15) 0px,
+    rgba(168, 85, 247, 0.15) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+
+.cassette-tape-line.playing::before {
+  animation: tapeMove 0.5s linear infinite;
+}
+
+/* Reels */
+.cassette-reel {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #111118;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cassette-reel.spinning {
+  animation: reelSpin 2s linear infinite;
+}
+
+.cassette-reel-inner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #2a2a35;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  position: relative;
+}
+
+.cassette-reel-hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 7px;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+/* Reel spokes */
+.cassette-reel-spoke {
+  position: absolute;
+  width: 2px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  top: 50%;
+  left: 50%;
+  transform-origin: center top;
+}
+
+.cassette-reel-spoke:nth-child(1) { transform: translate(-50%, -50%) rotate(0deg); }
+.cassette-reel-spoke:nth-child(2) { transform: translate(-50%, -50%) rotate(60deg); }
+.cassette-reel-spoke:nth-child(3) { transform: translate(-50%, -50%) rotate(120deg); }
+.cassette-reel-spoke:nth-child(4) { transform: translate(-50%, -50%) rotate(180deg); }
+.cassette-reel-spoke:nth-child(5) { transform: translate(-50%, -50%) rotate(240deg); }
+.cassette-reel-spoke:nth-child(6) { transform: translate(-50%, -50%) rotate(300deg); }
+
+/* Screws */
+.cassette-screw {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #555566;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cassette-screw::after {
+  content: '+';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 7px;
+  color: rgba(0, 0, 0, 0.4);
+  line-height: 1;
+}
+
+.cassette-screw.top-left { top: 5px; left: 8px; }
+.cassette-screw.top-right { top: 5px; right: 8px; }
+.cassette-screw.bottom-left { bottom: 5px; left: 8px; }
+.cassette-screw.bottom-right { bottom: 5px; right: 8px; }
+.cassette-screw.center-bottom { bottom: 5px; left: 50%; transform: translateX(-50%); }
+
+/* Side indicator */
+.cassette-side-indicator {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.5rem;
+  color: rgba(240, 238, 246, 0.25);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+/* ==================== */
+/*  PROGRESS BAR        */
+/* ==================== */
+.cassette-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 380px;
+}
+
+.cassette-time {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  color: rgba(240, 238, 246, 0.5);
+  min-width: 36px;
+  text-align: center;
+}
+
+.cassette-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  overflow: visible;
+}
+
+.cassette-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #a855f7, #ec4899);
+  border-radius: 999px;
+}
+
+.cassette-progress-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.8);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.cassette-progress-bar:hover .cassette-progress-thumb {
+  opacity: 1;
+}
+
+/* ==================== */
+/*  CONTROLS & VOLUME   */
+/* ==================== */
+.cassette-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 380px;
+  justify-content: center;
+}
+
+.ctrl-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f0eef6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 16px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  flex-shrink: 0;
+}
+
+.ctrl-btn.ctrl-sm {
+  width: 36px;
+  height: 36px;
+  font-size: 14px;
+}
+
+.ctrl-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  transform: scale(1.08);
+  border-color: rgba(168, 85, 247, 0.3);
+}
+
+.ctrl-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.ctrl-btn.ctrl-play {
+  width: 54px;
+  height: 54px;
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+  border: none;
+  font-size: 22px;
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.4);
+}
+
+.ctrl-btn.ctrl-play:hover:not(:disabled) {
+  transform: scale(1.1);
+  box-shadow: 0 0 40px rgba(168, 85, 247, 0.6);
+}
+
+.ctrl-btn.ctrl-play.loading {
+  animation: pulse-glow 1s infinite alternate;
+}
+
+/* Volume Slider */
+.volume-slider-wrap {
+  display: flex;
+  align-items: center;
+  width: 80px;
+}
+
+.volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  outline: none;
+  cursor: pointer;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #c084fc;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.6);
+  transition: transform 0.1s ease;
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* ==================== */
+/*  ANIMATIONS          */
+/* ==================== */
+@keyframes reelSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes tapeMove {
+  from { background-position: 0 0; }
+  to { background-position: 20px 0; }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* ==================== */
+/*  RESPONSIVE          */
+/* ==================== */
+@media (max-width: 500px) {
+  .track-list,
+  .cassette-body,
+  .cassette-progress,
+  .cassette-controls {
+    width: 310px;
+  }
+
+  .cassette-body {
+    height: 175px;
+  }
+
+  .cassette-label {
+    top: 10px;
+    left: 18px;
+    right: 18px;
+    height: 56px;
+  }
+
+  .cassette-window {
+    top: 76px;
+    left: 36px;
+    right: 36px;
+    height: 54px;
+    padding: 0 16px;
+  }
+
+  .cassette-reel {
+    width: 40px;
+    height: 40px;
+  }
+
+  .volume-slider-wrap {
+    width: 60px;
+  }
+}
