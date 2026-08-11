@@ -8,6 +8,9 @@ import labonKoSrc from './assets/audio/Labon Ko Bhool Bhulaiyaa 320 Kbps.mp3';
 import tuHiHaqeeqatSrc from './assets/audio/Tu Hi Haqeeqat Tum Mile Original Motion Picturetrack 320 Kbps.mp3';
 import tuHiMeriSrc from './assets/audio/Tu Hi Meri Shab Hai Gangster 320 Kbps.mp3';
 
+// Import background image
+import usBg from './assets/images/us.png';
+
 const TRACKS = [
   {
     id: 1,
@@ -48,9 +51,7 @@ const TRACKS = [
 ];
 
 const BG_IMAGES = [
-  '/couple_intimate.png',
-  '/couple_sunset.png',
-  '/couple_cozy.png',
+  usBg,
 ];
 
 export default function App() {

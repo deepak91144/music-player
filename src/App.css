@@ -20,44 +20,28 @@
 .bg-slide {
   position: absolute;
   inset: 0;
-  opacity: 0;
-  animation: bgFade 24s ease-in-out infinite;
-}
-
-.bg-slide:nth-child(1) { animation-delay: 0s; }
-.bg-slide:nth-child(2) { animation-delay: 8s; }
-.bg-slide:nth-child(3) { animation-delay: 16s; }
-
-@keyframes bgFade {
-  0%, 100% { opacity: 0; }
-  8%, 33% { opacity: 1; }
-  42% { opacity: 0; }
+  opacity: 1;
 }
 
 .bg-slide img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: brightness(0.75) saturate(1.15);
-  transform: scale(1.05);
-  animation: bgZoom 24s ease-in-out infinite;
+  filter: brightness(0.9); /* Keep it natural, just slightly darkened for text */
+  transform: scale(1.0);
+  animation: bgKenBurns 60s ease-in-out infinite alternate;
 }
 
-.bg-slide:nth-child(1) img { animation-delay: 0s; }
-.bg-slide:nth-child(2) img { animation-delay: 8s; }
-.bg-slide:nth-child(3) img { animation-delay: 16s; }
-
-@keyframes bgZoom {
-  0%, 100% { transform: scale(1.05); }
-  50% { transform: scale(1.12); }
+@keyframes bgKenBurns {
+  0% { transform: scale(1.0) translate(0, 0); }
+  100% { transform: scale(1.08) translate(-1%, -1%); } /* Extremely slow, premium zoom/pan */
 }
 
 .bg-overlay {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(ellipse at center bottom, rgba(168, 85, 247, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at center, transparent 30%, rgba(10, 10, 15, 0.4) 100%);
+  /* Elegant gradient that darkens the bottom for the cassette player, leaving the top clear */
+  background: linear-gradient(to top, rgba(10, 10, 15, 0.9) 0%, rgba(10, 10, 15, 0.3) 40%, transparent 100%);
   z-index: 1;
 }
 
@@ -78,26 +62,25 @@
 
 .love-quote {
   font-family: 'Outfit', sans-serif;
-  font-size: 1.35rem;
-  font-weight: 600;
-  font-style: italic;
+  font-size: 1.6rem;
+  font-weight: 400;
   letter-spacing: 0.5px;
   line-height: 1.5;
-  color: #ffffff;
-  text-shadow:
-    0 2px 10px rgba(0, 0, 0, 0.9),
-    0 0 20px rgba(244, 114, 182, 0.6),
-    0 0 40px rgba(192, 132, 252, 0.4);
-  padding: 0;
+  color: rgba(255, 255, 255, 0.95);
   background: none;
   border: none;
   box-shadow: none;
-  animation: quoteFloat 6s ease-in-out infinite alternate;
+  padding: 0;
+  display: inline-block;
+  margin: 0;
+  /* Clean drop shadow for readability without a background */
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 16px rgba(0, 0, 0, 0.5);
+  animation: quoteFloat 8s ease-in-out infinite alternate;
 }
 
 @keyframes quoteFloat {
   0% { transform: translateY(0px); }
-  100% { transform: translateY(-6px); }
+  100% { transform: translateY(-5px); }
 }
 
 @media (max-width: 500px) {
@@ -105,6 +88,6 @@
     top: 24px;
   }
   .love-quote {
-    font-size: 1rem;
+    font-size: 1.25rem;
   }
 }

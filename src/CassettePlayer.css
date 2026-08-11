@@ -3,7 +3,7 @@
 /* ==================== */
 .cassette-container {
   position: fixed;
-  bottom: 40px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 200;
@@ -153,14 +153,16 @@
 .cassette-body {
   width: 380px;
   height: 210px;
-  background: linear-gradient(180deg, #2e2e3a 0%, #242430 100%);
+  background: rgba(46, 46, 58, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-radius: 14px 14px 10px 10px;
   position: relative;
-  border: 2px solid #3d3d4e;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow:
-    inset 0 2px 6px rgba(255, 255, 255, 0.06),
+    inset 0 2px 6px rgba(255, 255, 255, 0.1),
     0 8px 40px rgba(0, 0, 0, 0.6),
-    0 0 60px rgba(168, 85, 247, 0.08);
+    0 0 60px rgba(168, 85, 247, 0.15);
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -172,9 +174,9 @@
   left: 24px;
   right: 24px;
   height: 72px;
-  background: linear-gradient(135deg, #1a1a26 0%, #15151f 100%);
+  background: rgba(26, 26, 38, 0.4);
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -238,9 +240,9 @@
   left: 55px;
   right: 55px;
   height: 68px;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.35);
   border-radius: 8px 8px 30px 30px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -287,8 +289,8 @@
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: #111118;
-  border: 2px solid rgba(255, 255, 255, 0.08);
+  background: rgba(17, 17, 24, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.12);
   position: relative;
   z-index: 1;
   display: flex;
