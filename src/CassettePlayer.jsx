@@ -22,7 +22,14 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
 
     // Pause current playback before switching
     audio.pause();
-    setIsLoading(true);
+    
+    // Only show loading spinner if we are going to auto-play
+    if (isPlaying) {
+      setIsLoading(true);
+    } else {
+      setIsLoading(false);
+    }
+
     audio.src = currentTrack.src;
     audio.load();
 
@@ -33,7 +40,12 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     if (isPlaying) {
       const playPromise = audio.play();
       if (playPromise) {
-        playPromise.catch(() => setIsPlaying(false));
+        playPromise.then(() => {
+          setIsLoading(false);
+        }).catch(() => {
+          setIsPlaying(false);
+          setIsLoading(false);
+        });
       }
     }
   }, [currentTrackIndex, currentTrack.src]);
@@ -92,11 +104,14 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
       setIsPlaying(false);
     } else {
       try {
+        setIsLoading(true);
         await audio.play();
         setIsPlaying(true);
+        setIsLoading(false);
       } catch (err) {
         console.error('Playback failed:', err);
         setIsPlaying(false);
+        setIsLoading(false);
       }
     }
   };
@@ -154,6 +169,8 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
         onCanPlay={handleCanPlay}
         onEnded={handleEnded}
         onError={handleAudioError}
+        onWaiting={() => setIsLoading(true)}
+        onPlaying={() => setIsLoading(false)}
       />
 
       <div className={`modern-player ${isPlaying ? 'is-playing' : ''}`}>
