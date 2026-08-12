@@ -145,7 +145,7 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
   const reelSpeed = d > 0 ? Math.max(0.8, 2.5 - (progressPct / 100) * 1.5) : 2;
 
   return (
-    <div className="cassette-container" id="cassette-player">
+    <div className="modern-player-wrapper">
       {/* Hidden audio element */}
       <audio
         ref={audioRef}
@@ -156,89 +156,35 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
         onError={handleAudioError}
       />
 
-
-      {/* Cassette Tape Visual */}
-      <div className="cassette-body">
-        {/* Screws */}
-        <div className="cassette-screw top-left" />
-        <div className="cassette-screw top-right" />
-        <div className="cassette-screw bottom-left" />
-        <div className="cassette-screw bottom-right" />
-        <div className="cassette-screw center-bottom" />
-
-        {/* Label */}
-        <div className="cassette-label">
-          <div className="cassette-label-lines">
-            <div className="cassette-label-line" />
-            <div className="cassette-label-line" />
-            <div className="cassette-label-line" />
-            <div className="cassette-label-line" />
-          </div>
-          <div className="cassette-label-text">
-            <div className={`cassette-label-title ${isPlaying ? 'scrolling' : ''}`}>
-              {isLoading ? 'Loading...' : currentTrack.title}
-            </div>
-            <div className="cassette-label-artist">{currentTrack.artist}</div>
-          </div>
+      <div className={`modern-player ${isPlaying ? 'is-playing' : ''}`}>
+        {/* Track Info */}
+        <div className="player-info">
+          <div className="player-title">{isLoading ? 'Loading...' : currentTrack.title}</div>
         </div>
 
-        {/* Tape Window with Reels */}
-        <div className="cassette-window">
-          <div
-            className={`cassette-reel ${isPlaying ? 'spinning' : ''}`}
-            style={isPlaying ? { animationDuration: `${reelSpeed}s` } : {}}
+        {/* Controls */}
+        <div className="player-controls">
+          <button className="player-btn" onClick={handlePrev} title="Previous">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+          </button>
+          <button
+            className={`player-btn play-pause-btn ${isLoading ? 'loading' : ''}`}
+            onClick={togglePlay}
+            title={isPlaying ? 'Pause' : 'Play'}
+            disabled={isLoading}
           >
-            <div className="cassette-reel-spoke" />
-            <div className="cassette-reel-spoke" />
-            <div className="cassette-reel-spoke" />
-            <div className="cassette-reel-spoke" />
-            <div className="cassette-reel-spoke" />
-            <div className="cassette-reel-spoke" />
-            <div className="cassette-reel-inner">
-              <div className="cassette-reel-hub" />
-            </div>
-          </div>
-
-          <div className="cassette-tape">
-            <div className={`cassette-tape-line ${isPlaying ? 'playing' : ''}`} />
-          </div>
-
-          <div
-            className={`cassette-reel ${isPlaying ? 'spinning' : ''}`}
-            style={isPlaying ? { animationDuration: `${Math.max(0.6, reelSpeed - 0.5)}s` } : {}}
-          >
-            <div className="cassette-reel-spoke" />
-            <div className="cassette-reel-spoke" />
-            <div className="cassette-reel-spoke" />
-            <div className="cassette-reel-spoke" />
-            <div className="cassette-reel-spoke" />
-            <div className="cassette-reel-spoke" />
-            <div className="cassette-reel-inner">
-              <div className="cassette-reel-hub" />
-            </div>
-          </div>
+            {isLoading ? (
+              <div className="spinner" />
+            ) : isPlaying ? (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            ) : (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            )}
+          </button>
+          <button className="player-btn" onClick={handleNext} title="Next">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+          </button>
         </div>
-
-        <div className="cassette-side-indicator">SIDE A • 90</div>
-      </div>
-
-      {/* 3 Main Controls: Prev / Play-Pause / Next */}
-      <div className="cassette-controls">
-        <button className="ctrl-btn" onClick={handlePrev} title="Previous" id="btn-prev">
-          ⏮
-        </button>
-        <button
-          className={`ctrl-btn ctrl-play ${isLoading ? 'loading' : ''}`}
-          onClick={togglePlay}
-          title={isPlaying ? 'Pause' : 'Play'}
-          id="btn-play-pause"
-          disabled={isLoading}
-        >
-          {isLoading ? '⏳' : isPlaying ? '⏸' : '▶'}
-        </button>
-        <button className="ctrl-btn" onClick={handleNext} title="Next" id="btn-next">
-          ⏭
-        </button>
       </div>
     </div>
   );

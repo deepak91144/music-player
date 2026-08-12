@@ -2,53 +2,41 @@ import { useState } from 'react';
 import CassettePlayer from './CassettePlayer';
 import './App.css';
 
-// Import audio files – Vite will handle these as static assets
-import dilIbaadatSrc from './assets/audio/Dil Ibaadat Tum Mile Original Motion Picturetrack 320 Kbps.mp3';
-import labonKoSrc from './assets/audio/Labon Ko Bhool Bhulaiyaa 320 Kbps.mp3';
-import tuHiHaqeeqatSrc from './assets/audio/Tu Hi Haqeeqat Tum Mile Original Motion Picturetrack 320 Kbps.mp3';
-import tuHiMeriSrc from './assets/audio/Tu Hi Meri Shab Hai Gangster 320 Kbps.mp3';
-
 // Import background image
 import usBg from './assets/images/us.png';
 
-const TRACKS = [
-  {
-    id: 1,
-    title: 'Dil Ibaadat',
-    artist: 'KK',
-    album: 'Tum Mile',
-    genre: 'Bollywood',
-    cover: '/album_midnight.png',
-    src: dilIbaadatSrc,
-  },
-  {
-    id: 2,
-    title: 'Labon Ko',
-    artist: 'KK',
-    album: 'Bhool Bhulaiyaa',
-    genre: 'Bollywood',
-    cover: '/album_neon.png',
-    src: labonKoSrc,
-  },
-  {
-    id: 3,
-    title: 'Tu Hi Haqeeqat',
-    artist: 'Javed Ali',
-    album: 'Tum Mile',
-    genre: 'Bollywood',
-    cover: '/album_aurora.png',
-    src: tuHiHaqeeqatSrc,
-  },
-  {
-    id: 4,
-    title: 'Tu Hi Meri Shab Hai',
-    artist: 'KK',
-    album: 'Gangster',
-    genre: 'Bollywood',
-    cover: '/album_ocean.png',
-    src: tuHiMeriSrc,
-  },
-];
+// Dynamically import all mp3 files from the audio folder
+const audioModules = import.meta.glob('./assets/audio/*.mp3', { eager: true, import: 'default' });
+const covers = ['/album_midnight.png', '/album_neon.png', '/album_aurora.png', '/album_ocean.png'];
+
+const shuffleArray = (array) => {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+};
+
+const TRACKS = shuffleArray(
+  Object.entries(audioModules).map(([path, src], index) => {
+    // Extract filename without extension
+    const filename = path.split('/').pop().replace('.mp3', '');
+    
+    // Clean up the title (remove " 320 Kbps" and other tags)
+    const cleanTitle = filename.replace(/\s*320 Kbps.*/i, '').replace(/\s*Original Motion Picturetrack/i, '').trim();
+    
+    return {
+      id: index + 1,
+      title: cleanTitle,
+      artist: 'Unknown Artist',
+      album: 'Unknown Album',
+      genre: 'Bollywood',
+      cover: covers[index % covers.length],
+      src: src,
+    };
+  })
+);
 
 const BG_IMAGES = [
   usBg,
