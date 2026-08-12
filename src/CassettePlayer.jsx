@@ -23,13 +23,6 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     // Pause current playback before switching
     audio.pause();
     
-    // Only show loading spinner if we are going to auto-play
-    if (isPlaying) {
-      setIsLoading(true);
-    } else {
-      setIsLoading(false);
-    }
-
     audio.src = currentTrack.src;
     audio.load();
 
@@ -40,11 +33,8 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     if (isPlaying) {
       const playPromise = audio.play();
       if (playPromise) {
-        playPromise.then(() => {
-          setIsLoading(false);
-        }).catch(() => {
+        playPromise.catch(() => {
           setIsPlaying(false);
-          setIsLoading(false);
         });
       }
     }
@@ -78,11 +68,6 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
   // Audio event handlers
   const handleLoadedMetadata = () => {
     setDuration(audioRef.current.duration);
-    setIsLoading(false);
-  };
-
-  const handleCanPlay = () => {
-    setIsLoading(false);
   };
 
   const handleEnded = () => {
@@ -104,14 +89,11 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
       setIsPlaying(false);
     } else {
       try {
-        setIsLoading(true);
         await audio.play();
         setIsPlaying(true);
-        setIsLoading(false);
       } catch (err) {
         console.error('Playback failed:', err);
         setIsPlaying(false);
-        setIsLoading(false);
       }
     }
   };
@@ -164,13 +146,15 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
       {/* Hidden audio element */}
       <audio
         ref={audioRef}
-        preload="metadata"
+        preload="auto"
+        onLoadStart={() => setIsLoading(true)}
         onLoadedMetadata={handleLoadedMetadata}
-        onCanPlay={handleCanPlay}
+        onCanPlay={() => setIsLoading(false)}
+        onPlaying={() => setIsLoading(false)}
+        onWaiting={() => setIsLoading(true)}
+        onPause={() => setIsLoading(false)}
         onEnded={handleEnded}
         onError={handleAudioError}
-        onWaiting={() => setIsLoading(true)}
-        onPlaying={() => setIsLoading(false)}
       />
 
       <div className={`modern-player ${isPlaying ? 'is-playing' : ''}`}>
