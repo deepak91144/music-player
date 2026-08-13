@@ -133,6 +133,7 @@
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+  min-height: 0; /* Prevents container from stretching beyond screen */
 }
 
 .room-player-section {
@@ -151,6 +152,7 @@
   width: 400px;
   display: flex;
   flex-direction: column;
+  min-height: 0; /* Prevents chat from pushing past boundaries */
 }
 
 @media (max-width: 900px) {
@@ -168,7 +170,7 @@
   .room-chat-section {
     width: 100%;
     flex: 1;
-    min-height: 400px;
+    min-height: 0; /* Replaced the hardcoded 400px that caused overflow */
   }
   .room-header {
     flex-direction: column;
