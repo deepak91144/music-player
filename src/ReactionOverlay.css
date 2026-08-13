@@ -34,6 +34,7 @@
   border: 1px solid rgba(255,255,255,0.2);
   color: white;
   animation: toast-slide-down 4s forwards;
+  pointer-events: auto; /* Allow clicking inside the toast */
 }
 
 .toast-emoji {
@@ -106,6 +107,12 @@
   align-items: center;
   text-align: center;
   padding: 16px 24px;
+  animation: invite-slide-in 0.3s forwards; /* Overrides the 4s auto-hide */
+}
+
+@keyframes invite-slide-in {
+  from { transform: translateY(-50px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .invite-actions {
