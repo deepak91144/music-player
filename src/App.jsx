@@ -104,7 +104,11 @@ export default function App() {
   return (
     <>
       {djSession ? (
-        <RoomPage djSession={djSession} setDjSession={setDjSession}>
+        <RoomPage 
+          djSession={djSession} 
+          setDjSession={setDjSession} 
+          currentTrack={TRACKS[currentTrackIndex]}
+        >
           {renderPlayer()}
         </RoomPage>
       ) : (

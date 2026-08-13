@@ -2,44 +2,40 @@ import React from 'react';
 import LiveChat from './LiveChat';
 import './RoomPage.css';
 
-const FloatingParticles = () => {
-  return (
-    <div className="particles-container">
-      {Array.from({ length: 15 }).map((_, i) => {
-        const style = {
-          left: `${Math.random() * 100}%`,
-          animationDuration: `${10 + Math.random() * 20}s`,
-          animationDelay: `${Math.random() * 5}s`,
-          opacity: 0.1 + Math.random() * 0.3,
-          transform: `scale(${0.5 + Math.random()})`
-        };
-        return <div key={i} className="particle-heart" style={style}>❤</div>;
-      })}
-    </div>
-  );
-};
+export default function RoomPage({ djSession, setDjSession, currentTrack, children }) {
+  const roleText = djSession.isMaster ? "MASTER DJ" : "LISTENER";
+  const partnerText = djSession.isMaster 
+    ? `Broadcasting to ${djSession.partnerName}` 
+    : `Listening live with ${djSession.partnerName}`;
 
-export default function RoomPage({ djSession, setDjSession, children }) {
-  const roleText = djSession.isMaster ? "DJ" : "Listener";
-  const partnerText = djSession.isMaster ? `Broadcasting to ${djSession.partnerName}` : `Listening to ${djSession.partnerName}`;
+  const coverSrc = currentTrack?.cover || '/album_midnight.png';
 
   return (
     <div className="room-page-container">
-      {/* Romantic background effects */}
-      <div className="romantic-gradient"></div>
-      <FloatingParticles />
-      <div className="ambient-bg-1"></div>
-      <div className="ambient-bg-2"></div>
-      
+      {/* Dynamic Album Art Ambient Backdrop */}
+      <div className="dynamic-album-backdrop" style={{ backgroundImage: `url(${coverSrc})` }} />
+      <div className="room-overlay-gradient" />
+
+      {/* Subtle Ambient Orbs */}
+      <div className="ambient-glow-1" />
+      <div className="ambient-glow-2" />
+
+      {/* Luxury Glass Header */}
       <div className="room-header">
-        <div className="room-title">
-          <span className="live-badge">❤ LIVE</span>
-          <h2>Our Room</h2>
+        <div className="room-title-block">
+          <div className="live-status-pill">
+            <span className="pulse-dot" />
+            <span className="live-text">SYNCED SESSION</span>
+          </div>
+          <h2 className="room-heading">Private Studio</h2>
         </div>
-        <div className="room-status">
-          <span className="role-badge">{roleText}</span>
-          <span className="partner-text">{partnerText}</span>
-          <button className="leave-room-btn" onClick={() => setDjSession(null)}>Leave Room</button>
+
+        <div className="room-status-block">
+          <span className={`role-badge ${djSession.isMaster ? 'master' : 'listener'}`}>{roleText}</span>
+          <span className="partner-info">{partnerText}</span>
+          <button className="leave-room-btn" onClick={() => setDjSession(null)}>
+            <span>Leave Session</span>
+          </button>
         </div>
       </div>
 

@@ -4,173 +4,201 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: #0a0a0a;
+  background: #050508;
   z-index: 100;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  color: white;
+  color: #ffffff;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-.romantic-gradient {
+/* Dynamic Album Art Backdrop (Apple Music Blurred Canvas) */
+.dynamic-album-backdrop {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: linear-gradient(135deg, rgba(43, 0, 18, 0.9) 0%, rgba(10, 2, 7, 1) 100%);
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(90px) saturate(160%) brightness(0.6);
+  transform: scale(1.1);
+  transition: background-image 1.5s ease-in-out;
   z-index: 0;
+  opacity: 0.7;
 }
 
-/* Ambient glowing orbs in background */
-.ambient-bg-1, .ambient-bg-2 {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  z-index: 0;
-  opacity: 0.5;
-  animation: pulse-glow 10s infinite alternate;
-}
-
-.ambient-bg-1 {
-  width: 60vw;
-  height: 60vw;
-  background: radial-gradient(circle, rgba(255, 60, 100, 0.25) 0%, transparent 70%);
-  top: -20vh;
-  left: -10vw;
-}
-
-.ambient-bg-2 {
-  width: 50vw;
-  height: 50vw;
-  background: radial-gradient(circle, rgba(255, 120, 150, 0.2) 0%, transparent 70%);
-  bottom: -20vh;
-  right: -10vw;
-  animation-delay: -5s;
-}
-
-.particles-container {
+.room-overlay-gradient {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  background: radial-gradient(circle at 50% 30%, rgba(10, 10, 20, 0.4) 0%, rgba(5, 5, 10, 0.92) 80%);
+  z-index: 0;
+}
+
+/* Subtle Glowing Lights */
+.ambient-glow-1, .ambient-glow-2 {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
   z-index: 0;
   pointer-events: none;
 }
 
-.particle-heart {
-  position: absolute;
-  bottom: -50px;
-  color: rgba(255, 60, 100, 0.6);
-  font-size: 24px;
-  filter: blur(1px);
-  animation: float-up infinite linear forwards;
+.ambient-glow-1 {
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(255, 45, 85, 0.15) 0%, transparent 70%);
+  top: -15vh;
+  left: 20vw;
+  animation: pulse-slow 12s ease-in-out infinite alternate;
 }
 
-@keyframes float-up {
-  0% { transform: translateY(0) scale(0.5) rotate(0deg); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { transform: translateY(-120vh) scale(1.5) rotate(90deg); opacity: 0; }
+.ambient-glow-2 {
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle, rgba(98, 0, 238, 0.12) 0%, transparent 70%);
+  bottom: -20vh;
+  right: -10vw;
+  animation: pulse-slow 16s ease-in-out infinite alternate-reverse;
 }
 
-@keyframes pulse-glow {
-  0% { transform: scale(1) translate(0, 0); opacity: 0.3; }
-  100% { transform: scale(1.2) translate(50px, 50px); opacity: 0.6; }
+@keyframes pulse-slow {
+  0% { transform: scale(1) translate(0, 0); opacity: 0.4; }
+  100% { transform: scale(1.15) translate(20px, 30px); opacity: 0.8; }
 }
 
+/* Ultra-Sleek Glass Header */
 .room-header {
   position: relative;
-  z-index: 1;
+  z-index: 10;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 40px;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 16px 36px;
+  background: rgba(18, 18, 28, 0.45);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
 }
 
-.room-title {
+.room-title-block {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 16px;
 }
 
-.live-badge {
-  background: #ff3b30;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 1px;
-  animation: pulse-red 2s infinite;
+.live-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 45, 85, 0.12);
+  border: 1px solid rgba(255, 45, 85, 0.3);
+  padding: 5px 12px;
+  border-radius: 20px;
 }
 
-@keyframes pulse-red {
-  0% { box-shadow: 0 0 0 0 rgba(255,59,48, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(255,59,48, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255,59,48, 0); }
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #ff2d55;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #ff2d55;
+  animation: live-pulse 1.8s infinite;
 }
 
-.room-title h2 {
+@keyframes live-pulse {
+  0% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 0.4; transform: scale(0.9); }
+}
+
+.live-text {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #ff2d55;
+  text-transform: uppercase;
+}
+
+.room-heading {
   margin: 0;
-  font-weight: 300;
-  font-size: 24px;
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: -0.3px;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
-.room-status {
+.room-status-block {
   display: flex;
   align-items: center;
   gap: 20px;
 }
 
 .role-badge {
-  background: rgba(50, 215, 75, 0.2);
-  border: 1px solid rgba(50, 215, 75, 0.5);
-  padding: 4px 12px;
+  padding: 5px 14px;
   border-radius: 12px;
-  font-size: 12px;
-  font-weight: bold;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.role-badge.master {
+  background: rgba(50, 215, 75, 0.15);
+  border: 1px solid rgba(50, 215, 75, 0.4);
   color: #32d74b;
 }
 
-.partner-text {
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.8);
+.role-badge.listener {
+  background: rgba(10, 132, 255, 0.15);
+  border: 1px solid rgba(10, 132, 255, 0.4);
+  color: #0a84ff;
+}
+
+.partner-info {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .leave-room-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 8px 18px;
   border-radius: 20px;
   cursor: pointer;
-  font-weight: bold;
-  transition: all 0.2s;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(10px);
 }
 
 .leave-room-btn:hover {
-  background: rgba(255, 59, 48, 0.2);
-  border-color: rgba(255, 59, 48, 0.5);
-  color: #ff3b30;
+  background: rgba(255, 69, 58, 0.2);
+  border-color: rgba(255, 69, 58, 0.5);
+  color: #ff453a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(255, 69, 58, 0.2);
 }
 
 .room-content {
   position: relative;
-  z-index: 1;
+  z-index: 10;
   flex: 1;
   display: flex;
-  padding: 40px;
-  gap: 40px;
-  max-width: 1400px;
+  padding: 32px 40px;
+  gap: 36px;
+  max-width: 1440px;
   margin: 0 auto;
   width: 100%;
-  min-height: 0; /* Prevents container from stretching beyond screen */
+  min-height: 0;
 }
 
 .room-player-section {
@@ -180,23 +208,39 @@
   align-items: center;
 }
 
-/* Make cassette player larger in room view */
 .room-player-section .cassette-container {
-  transform: scale(1.2);
+  transform: scale(1.15);
+  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.6));
 }
 
 .room-chat-section {
   width: 400px;
   display: flex;
   flex-direction: column;
-  min-height: 0; /* Prevents chat from pushing past boundaries */
+  min-height: 0;
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
 }
 
 @media (max-width: 900px) {
+  .room-header {
+    padding: 14px 20px;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .room-status-block {
+    width: 100%;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .partner-info {
+    font-size: 12px;
+  }
   .room-content {
-    flex-direction: column-reverse; /* Puts chat section at the top */
-    padding: 20px;
-    gap: 20px;
+    flex-direction: column-reverse;
+    padding: 16px;
+    gap: 16px;
   }
   .room-player-section {
     flex: 0 0 auto;
@@ -207,11 +251,6 @@
   .room-chat-section {
     width: 100%;
     flex: 1;
-    min-height: 0; /* Replaced the hardcoded 400px that caused overflow */
-  }
-  .room-header {
-    flex-direction: column;
-    gap: 15px;
-    align-items: flex-start;
+    min-height: 0;
   }
 }
