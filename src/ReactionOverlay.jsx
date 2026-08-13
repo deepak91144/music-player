@@ -55,19 +55,26 @@ export default function ReactionOverlay({ setDjSession }) {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
+        // Query only by toUserId to avoid requiring a composite index in Firestore
         const qInvites = query(
           collection(db, 'invites'),
-          where('toUserId', '==', user.uid),
-          where('status', '==', 'pending'),
-          where('timestamp', '>=', Date.now() - 60000) // only invites from the last minute
+          where('toUserId', '==', user.uid)
         );
 
         const unsubscribeInvites = onSnapshot(qInvites, (snapshot) => {
           const newInvites = [];
+          const oneMinuteAgo = Date.now() - 60000;
+          
           snapshot.forEach((docSnap) => {
-             newInvites.push({ id: docSnap.id, ...docSnap.data() });
+             const data = docSnap.data();
+             // Filter by status and timestamp locally
+             if (data.status === 'pending' && data.timestamp >= oneMinuteAgo) {
+               newInvites.push({ id: docSnap.id, ...data });
+             }
           });
           setInvites(newInvites);
+        }, (error) => {
+          console.error("Invites listener error:", error);
         });
         
         return () => unsubscribeInvites();
