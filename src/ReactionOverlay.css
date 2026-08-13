@@ -99,3 +99,40 @@
     opacity: 0;
   }
 }
+
+/* Invite Toast specific styles */
+.invite-toast {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 16px 24px;
+}
+
+.invite-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.btn-accept, .btn-decline {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.btn-accept {
+  background: #32d74b;
+  color: black;
+}
+
+.btn-decline {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.btn-accept:hover, .btn-decline:hover {
+  transform: scale(1.05);
+}

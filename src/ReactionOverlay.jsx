@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy, limit, doc, updateDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from './firebase';
 import './ReactionOverlay.css';
 
-export default function ReactionOverlay() {
+export default function ReactionOverlay({ setDjSession }) {
   const [reactions, setReactions] = useState([]);
   const [toasts, setToasts] = useState([]);
+  const [invites, setInvites] = useState([]);
 
   useEffect(() => {
     // Only listen for new reactions from now onwards
@@ -49,10 +51,62 @@ export default function ReactionOverlay() {
     return () => unsubscribe();
   }, []);
 
+  // Listen for incoming invites
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const qInvites = query(
+          collection(db, 'invites'),
+          where('toUserId', '==', user.uid),
+          where('status', '==', 'pending'),
+          where('timestamp', '>=', Date.now() - 60000) // only invites from the last minute
+        );
+
+        const unsubscribeInvites = onSnapshot(qInvites, (snapshot) => {
+          const newInvites = [];
+          snapshot.forEach((docSnap) => {
+             newInvites.push({ id: docSnap.id, ...docSnap.data() });
+          });
+          setInvites(newInvites);
+        });
+        
+        return () => unsubscribeInvites();
+      }
+    });
+    
+    return () => unsubscribeAuth();
+  }, []);
+
+  const handleAcceptInvite = (invite) => {
+    if (setDjSession) {
+      setDjSession({ id: invite.fromUserId, name: invite.fromUserName });
+    }
+    updateDoc(doc(db, 'invites', invite.id), { status: 'accepted' }).catch(()=>{});
+  };
+
+  const handleDeclineInvite = (invite) => {
+    updateDoc(doc(db, 'invites', invite.id), { status: 'declined' }).catch(()=>{});
+  };
+
   return (
     <div className="reaction-overlay-container">
       {/* Toast Notifications */}
       <div className="toast-container">
+        {/* Invites */}
+        {invites.map(invite => (
+          <div key={`invite-${invite.id}`} className="reaction-toast invite-toast">
+            <span className="toast-emoji">🎧</span>
+            <span className="toast-text">
+              <strong>{invite.fromUserName}</strong> invited you to listen to <strong>{invite.songTitle}</strong> together!
+            </span>
+            <div className="invite-actions">
+              <button onClick={() => handleAcceptInvite(invite)} className="btn-accept">Accept</button>
+              <button onClick={() => handleDeclineInvite(invite)} className="btn-decline">Decline</button>
+            </div>
+          </div>
+        ))}
+
+        {/* Regular Reaction Toasts */}
         {toasts.map(toast => (
           <div key={`toast-${toast.id}`} className="reaction-toast">
             <span className="toast-emoji">{toast.emoji}</span>

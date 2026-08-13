@@ -214,6 +214,10 @@
     font-size: 0.95rem;
   }
 
+  .player-info {
+    max-width: 150px;
+  }
+
   .player-btn {
     padding: 6px;
   }
@@ -221,4 +225,42 @@
   .play-pause-btn {
     padding: 8px;
   }
+}
+
+/* DJ Mode Styles */
+.dj-mode-banner {
+  background: rgba(50, 215, 75, 0.2);
+  border: 1px solid rgba(50, 215, 75, 0.5);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  backdrop-filter: blur(10px);
+  font-size: 14px;
+}
+
+.leave-dj-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.leave-dj-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.slave-mode .player-controls {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.slave-mode .progress-container {
+  pointer-events: none;
 }

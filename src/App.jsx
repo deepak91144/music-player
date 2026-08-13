@@ -70,6 +70,7 @@ const BG_IMAGES = [
 
 export default function App() {
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [djSession, setDjSession] = useState(null);
 
   return (
       <div className="app">
@@ -84,7 +85,7 @@ export default function App() {
       </div>
 
       <LiveFeed />
-      <ReactionOverlay />
+      <ReactionOverlay setDjSession={setDjSession} />
 
       {/* Love Quote Overlay Banner */}
       <div className="love-quote-container">
@@ -98,6 +99,8 @@ export default function App() {
         tracks={TRACKS}
         currentTrackIndex={currentTrackIndex}
         setCurrentTrackIndex={setCurrentTrackIndex}
+        djSession={djSession}
+        setDjSession={setDjSession}
       />
     </div>
   );

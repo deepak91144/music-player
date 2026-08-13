@@ -30,13 +30,24 @@ export default function LiveFeed() {
   const sendReaction = async (targetUser, emoji) => {
     if (!auth.currentUser) return;
     try {
-      await addDoc(collection(db, 'reactions'), {
-        fromUserId: auth.currentUser.uid,
-        fromUserName: generateUserName(auth.currentUser.uid),
-        toUserId: targetUser.userId,
-        emoji: emoji,
-        timestamp: Date.now()
-      });
+      if (emoji === '🎧') {
+        await addDoc(collection(db, 'invites'), {
+          fromUserId: auth.currentUser.uid,
+          fromUserName: generateUserName(auth.currentUser.uid),
+          toUserId: targetUser.userId,
+          songTitle: targetUser.songTitle,
+          status: 'pending',
+          timestamp: Date.now()
+        });
+      } else {
+        await addDoc(collection(db, 'reactions'), {
+          fromUserId: auth.currentUser.uid,
+          fromUserName: generateUserName(auth.currentUser.uid),
+          toUserId: targetUser.userId,
+          emoji: emoji,
+          timestamp: Date.now()
+        });
+      }
     } catch (err) {
       console.error("Failed to send reaction", err);
     }
@@ -67,6 +78,7 @@ export default function LiveFeed() {
                 <button onClick={() => sendReaction(user, '❤️')}>❤️</button>
                 <button onClick={() => sendReaction(user, '🎵')}>🎵</button>
                 <button onClick={() => sendReaction(user, '👏')}>👏</button>
+                <button onClick={() => sendReaction(user, '🎧')} title="Listen Together">🎧</button>
               </div>
             )}
 

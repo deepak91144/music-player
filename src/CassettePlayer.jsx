@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { db, signInAnonymousUser, generateUserName } from './firebase';
 import './CassettePlayer.css';
 
-export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTrackIndex }) {
+export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTrackIndex, djSession, setDjSession }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -23,9 +23,9 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     signInAnonymousUser().then(u => setUser(u));
   }, []);
 
-  // Sync playing state to Firestore
+  // Sync playing state to Firestore (Only if NOT in DJ mode)
   useEffect(() => {
-    if (!user) return;
+    if (!user || djSession) return;
     
     const userRef = doc(db, 'now_playing', user.uid);
     
@@ -36,16 +36,65 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
         songTitle: currentTrack.title,
         artist: currentTrack.artist,
         cover: currentTrack.cover,
-        timestamp: new Date().getTime()
+        timestamp: Date.now(),
+        playbackTime: audioRef.current?.currentTime || 0,
+        isPlaying: true
       }).catch(err => console.warn("Firestore error:", err));
     } else {
-      deleteDoc(userRef).catch(() => {});
+      // We can also just update it to isPlaying: false, but deleting is fine too.
+      // Let's actually update it so the slave knows it paused.
+      setDoc(userRef, {
+        userId: user.uid,
+        displayName: generateUserName(user.uid),
+        songTitle: currentTrack.title,
+        artist: currentTrack.artist,
+        cover: currentTrack.cover,
+        timestamp: Date.now(),
+        playbackTime: audioRef.current?.currentTime || 0,
+        isPlaying: false
+      }).catch(() => {});
     }
 
     return () => {
       deleteDoc(userRef).catch(() => {});
     };
-  }, [isPlaying, currentTrack, user]);
+  }, [isPlaying, currentTrack, user, djSession]);
+
+  // Slave Mode: Listen to DJ's state
+  useEffect(() => {
+    if (!djSession) return;
+    
+    const unsubscribe = onSnapshot(doc(db, 'now_playing', djSession.id), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        
+        // Match Track
+        const trackIndex = tracks.findIndex(t => t.title === data.songTitle);
+        if (trackIndex !== -1 && trackIndex !== currentTrackIndex) {
+           setCurrentTrackIndex(trackIndex);
+        }
+        
+        const audio = audioRef.current;
+        if (audio) {
+          // If DJ is playing, expected time is offset by latency. If paused, it's just the playbackTime.
+          const timeElapsedSinceUpdate = data.isPlaying ? (Date.now() - data.timestamp) / 1000 : 0;
+          const expectedTime = data.playbackTime + timeElapsedSinceUpdate;
+          
+          if (Math.abs(audio.currentTime - expectedTime) > 1.5) {
+             audio.currentTime = expectedTime;
+          }
+
+          if (data.isPlaying && audio.paused) {
+            audio.play().then(() => setIsPlaying(true)).catch(()=>{});
+          } else if (!data.isPlaying && !audio.paused) {
+            audio.pause();
+            setIsPlaying(false);
+          }
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [djSession, currentTrackIndex, tracks, setCurrentTrackIndex]);
 
   // Create / update audio element on track change
   useEffect(() => {
@@ -147,6 +196,7 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
 
   // Seek via progress bar click
   const handleSeek = (e) => {
+    if (djSession) return; // Disabled in slave mode
     const bar = progressRef.current;
     if (!bar || !audioRef.current) return;
     const rect = bar.getBoundingClientRect();
@@ -155,6 +205,20 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     const seekTime = pct * (audioRef.current.duration || 0);
     audioRef.current.currentTime = seekTime;
     setCurrentTime(seekTime);
+    
+    // Force sync to firebase on seek
+    if (user && isPlaying && !djSession) {
+      setDoc(doc(db, 'now_playing', user.uid), {
+        userId: user.uid,
+        displayName: generateUserName(user.uid),
+        songTitle: currentTrack.title,
+        artist: currentTrack.artist,
+        cover: currentTrack.cover,
+        timestamp: Date.now(),
+        playbackTime: seekTime,
+        isPlaying: true
+      }).catch(()=>{});
+    }
   };
 
   // Volume toggle
@@ -189,10 +253,32 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
         onError={handleAudioError}
       />
 
-      <div className={`modern-player ${isPlaying ? 'is-playing' : ''}`}>
+      {djSession && (
+        <div className="dj-mode-banner">
+          🎧 Listening live with <strong>{djSession.name}</strong>
+          <button onClick={() => setDjSession(null)} className="leave-dj-btn">Leave</button>
+        </div>
+      )}
+
+      <div className={`modern-player ${isPlaying ? 'is-playing' : ''} ${djSession ? 'slave-mode' : ''}`}>
         {/* Track Info */}
         <div className="player-info">
           <div className="player-title">{isLoading ? 'Loading...' : currentTrack.title}</div>
+        </div>
+
+        {/* Progress Bar (Clickable only if not slaved) */}
+        <div 
+          className={`progress-container ${djSession ? 'disabled' : ''}`}
+          ref={progressRef} 
+          onClick={handleSeek}
+        >
+          <div className="progress-bar-bg">
+            <div className="progress-bar-fill" style={{ width: `${progressPct}%` }}></div>
+          </div>
+          <div className="progress-time">
+            <span>{formatTime(currentTime)}</span>
+            <span>{formatTime(d)}</span>
+          </div>
         </div>
 
         {/* Controls */}
