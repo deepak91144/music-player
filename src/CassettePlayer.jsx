@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { db, signInAnonymousUser, generateUserName } from './firebase';
 import './CassettePlayer.css';
 
 export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTrackIndex }) {
@@ -8,12 +10,42 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
   const [volume, setVolume] = useState(0.8);
   const [isMuted, setIsMuted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState(null);
 
   const audioRef = useRef(null);
   const progressRef = useRef(null);
   const animationRef = useRef(null);
 
   const currentTrack = tracks[currentTrackIndex] || tracks[0];
+
+  // Sign in anonymously on mount
+  useEffect(() => {
+    signInAnonymousUser().then(u => setUser(u));
+  }, []);
+
+  // Sync playing state to Firestore
+  useEffect(() => {
+    if (!user) return;
+    
+    const userRef = doc(db, 'now_playing', user.uid);
+    
+    if (isPlaying) {
+      setDoc(userRef, {
+        userId: user.uid,
+        displayName: generateUserName(user.uid),
+        songTitle: currentTrack.title,
+        artist: currentTrack.artist,
+        cover: currentTrack.cover,
+        timestamp: new Date().getTime()
+      }).catch(err => console.warn("Firestore error:", err));
+    } else {
+      deleteDoc(userRef).catch(() => {});
+    }
+
+    return () => {
+      deleteDoc(userRef).catch(() => {});
+    };
+  }, [isPlaying, currentTrack, user]);
 
   // Create / update audio element on track change
   useEffect(() => {

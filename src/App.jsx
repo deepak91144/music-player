@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import CassettePlayer from './CassettePlayer';
+import LiveFeed from './LiveFeed';
 import './App.css';
 
 // Import background image
@@ -70,7 +71,7 @@ export default function App() {
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
 
   return (
-    <div className="app">
+      <div className="app">
       {/* Background Slideshow */}
       <div className="bg-slideshow">
         {BG_IMAGES.map((src, i) => (
@@ -80,6 +81,8 @@ export default function App() {
         ))}
         <div className="bg-overlay" />
       </div>
+
+      <LiveFeed />
 
       {/* Love Quote Overlay Banner */}
       <div className="love-quote-container">
