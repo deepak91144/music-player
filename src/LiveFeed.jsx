@@ -60,7 +60,7 @@ export default function LiveFeed() {
     <div className={`live-feed ${isOpen ? 'open' : 'closed'}`}>
       <div className="live-feed-header" onClick={() => setIsOpen(!isOpen)}>
         <span className="live-indicator"></span>
-        <h3>Live Feed</h3>
+        <h3>Active Listeners</h3>
         <span className="toggle-icon">{isOpen ? '▼' : '▲'}</span>
       </div>
       
