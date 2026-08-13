@@ -37,6 +37,12 @@ export default function LiveChat({ roomId }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const formatTime = (ts) => {
+    if (!ts) return '';
+    const date = new Date(ts);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   const handleSend = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !auth.currentUser) return;
@@ -65,7 +71,10 @@ export default function LiveChat({ roomId }) {
           const isMe = auth.currentUser?.uid === msg.senderId;
           return (
             <div key={msg.id} className={`chat-message ${isMe ? 'message-mine' : 'message-theirs'}`}>
-              {!isMe && <div className="message-sender">{msg.senderName}</div>}
+              <div className="message-header-info">
+                {!isMe && <span className="message-sender">{msg.senderName}</span>}
+                <span className="message-time">{formatTime(msg.timestamp)}</span>
+              </div>
               <div className="message-bubble">{msg.text}</div>
             </div>
           );

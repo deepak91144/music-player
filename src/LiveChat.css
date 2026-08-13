@@ -57,11 +57,30 @@
   align-self: flex-start;
 }
 
+.message-header-info {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.message-mine .message-header-info {
+  justify-content: flex-end;
+}
+
+.message-theirs .message-header-info {
+  justify-content: flex-start;
+}
+
 .message-sender {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 4px;
-  margin-left: 4px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.message-time {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .message-bubble {

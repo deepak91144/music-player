@@ -159,6 +159,9 @@
     padding: 20px;
     gap: 20px;
   }
+  .room-player-section {
+    flex: 0 0 auto;
+  }
   .room-player-section .cassette-container {
     transform: scale(1);
   }

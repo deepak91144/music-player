@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import CassettePlayer from './CassettePlayer';
 import LiveFeed from './LiveFeed';
 import ReactionOverlay from './ReactionOverlay';
@@ -71,7 +71,25 @@ const BG_IMAGES = [
 
 export default function App() {
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
-  const [djSession, setDjSession] = useState(null);
+  
+  // Initialize from localStorage so rooms survive page refreshes
+  const [djSession, setDjSession] = useState(() => {
+    try {
+      const saved = localStorage.getItem('musicPlayer_djSession');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Sync djSession to localStorage
+  useEffect(() => {
+    if (djSession) {
+      localStorage.setItem('musicPlayer_djSession', JSON.stringify(djSession));
+    } else {
+      localStorage.removeItem('musicPlayer_djSession');
+    }
+  }, [djSession]);
 
   const renderPlayer = () => (
     <CassettePlayer
