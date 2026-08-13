@@ -190,7 +190,7 @@
 /* ==================== */
 @media (max-width: 500px) {
   .modern-player-wrapper {
-    bottom: 24px;
+    bottom: max(65px, calc(45px + env(safe-area-inset-bottom)));
     width: 92%;
   }
 

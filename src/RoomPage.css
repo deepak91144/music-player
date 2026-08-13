@@ -180,6 +180,7 @@
   .room-content {
     flex-direction: column-reverse;
     padding: 12px;
+    padding-bottom: 40px;
     gap: 12px;
     flex: 1;
     min-height: 0;
@@ -188,6 +189,7 @@
   .room-player-section {
     flex: 0 0 auto;
     width: 100%;
+    padding-bottom: 20px;
   }
   .room-player-section .modern-player-wrapper {
     max-width: 100% !important;
