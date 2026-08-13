@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
-import { db, auth } from './firebase';
+import { collection, onSnapshot, query, orderBy, limit, addDoc } from 'firebase/firestore';
+import { db, auth, generateUserName } from './firebase';
 import './LiveFeed.css';
 
 export default function LiveFeed() {
@@ -27,6 +27,21 @@ export default function LiveFeed() {
     return () => unsubscribe();
   }, []);
 
+  const sendReaction = async (targetUser, emoji) => {
+    if (!auth.currentUser) return;
+    try {
+      await addDoc(collection(db, 'reactions'), {
+        fromUserId: auth.currentUser.uid,
+        fromUserName: generateUserName(auth.currentUser.uid),
+        toUserId: targetUser.userId,
+        emoji: emoji,
+        timestamp: Date.now()
+      });
+    } catch (err) {
+      console.error("Failed to send reaction", err);
+    }
+  };
+
   if (activeUsers.length === 0) return null;
 
   return (
@@ -39,12 +54,22 @@ export default function LiveFeed() {
       
       <div className="live-feed-list">
         {activeUsers.map((user) => (
-          <div key={user.userId} className="live-user-card">
+          <div key={user.userId} className="live-user-card group">
             <div className="user-avatar" style={{backgroundImage: `url(${user.cover})`}}></div>
             <div className="user-info">
               <span className="user-name">{user.displayName} {auth.currentUser?.uid === user.userId && '(You)'}</span>
               <span className="user-song">listening to <strong>{user.songTitle}</strong></span>
             </div>
+            
+            {auth.currentUser?.uid !== user.userId && (
+              <div className="reaction-menu">
+                <button onClick={() => sendReaction(user, '🔥')}>🔥</button>
+                <button onClick={() => sendReaction(user, '❤️')}>❤️</button>
+                <button onClick={() => sendReaction(user, '🎵')}>🎵</button>
+                <button onClick={() => sendReaction(user, '👏')}>👏</button>
+              </div>
+            )}
+
             <div className="equalizer">
               <span className="bar"></span>
               <span className="bar"></span>

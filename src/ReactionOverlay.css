@@ -1,0 +1,101 @@
+.reaction-overlay-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none; /* Let clicks pass through */
+  z-index: 9999;
+  overflow: hidden;
+}
+
+/* Toasts */
+.toast-container {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.reaction-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 12px 24px;
+  border-radius: 30px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  animation: toast-slide-down 4s forwards;
+}
+
+.toast-emoji {
+  font-size: 24px;
+  animation: bounce 1s infinite;
+}
+
+.toast-text {
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.toast-text strong {
+  font-weight: 700;
+}
+
+@keyframes toast-slide-down {
+  0% { transform: translateY(-50px); opacity: 0; }
+  10% { transform: translateY(0); opacity: 1; }
+  80% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-20px); opacity: 0; }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* Floating Bubbles */
+.floating-bubbles-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.floating-bubble {
+  position: absolute;
+  bottom: -50px;
+  font-size: 40px;
+  filter: drop-shadow(0 0 10px rgba(255,255,255,0.5));
+  animation: float-up 4s ease-in forwards;
+}
+
+@keyframes float-up {
+  0% { 
+    transform: translateY(0) scale(0.5); 
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(-10vh) scale(1) translateX(20px);
+  }
+  50% {
+    transform: translateY(-50vh) scale(1.2) translateX(-20px);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% { 
+    transform: translateY(-100vh) scale(1.5) translateX(30px); 
+    opacity: 0;
+  }
+}

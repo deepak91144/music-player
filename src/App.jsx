@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import CassettePlayer from './CassettePlayer';
 import LiveFeed from './LiveFeed';
+import ReactionOverlay from './ReactionOverlay';
 import './App.css';
 
 // Import background image
@@ -83,6 +84,7 @@ export default function App() {
       </div>
 
       <LiveFeed />
+      <ReactionOverlay />
 
       {/* Love Quote Overlay Banner */}
       <div className="love-quote-container">
