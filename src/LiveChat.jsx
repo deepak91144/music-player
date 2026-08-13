@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc } from 'firebase/firestore';
 import { db, auth, generateUserName } from './firebase';
 import './LiveChat.css';
 
@@ -13,8 +13,7 @@ export default function LiveChat({ roomId }) {
     
     const q = query(
       collection(db, 'chats'),
-      where('roomId', '==', roomId),
-      orderBy('timestamp', 'asc')
+      where('roomId', '==', roomId)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -22,7 +21,13 @@ export default function LiveChat({ roomId }) {
       snapshot.forEach((doc) => {
         msgs.push({ id: doc.id, ...doc.data() });
       });
+      
+      // Sort messages locally to avoid requiring a Firestore composite index
+      msgs.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+      
       setMessages(msgs);
+    }, (err) => {
+      console.error("LiveChat listener error:", err);
     });
 
     return () => unsubscribe();
@@ -42,7 +47,7 @@ export default function LiveChat({ roomId }) {
         senderId: auth.currentUser.uid,
         senderName: generateUserName(auth.currentUser.uid),
         text: newMessage,
-        timestamp: serverTimestamp() // We can use serverTimestamp here
+        timestamp: Date.now() // Use Date.now() for simple local sorting
       });
       setNewMessage('');
     } catch (err) {

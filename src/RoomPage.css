@@ -25,7 +25,7 @@
 .ambient-bg-1 {
   width: 60vw;
   height: 60vw;
-  background: radial-gradient(circle, rgba(50,215,75,0.2) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255,0,128,0.35) 0%, transparent 70%);
   top: -20vh;
   left: -10vw;
 }
@@ -33,7 +33,7 @@
 .ambient-bg-2 {
   width: 50vw;
   height: 50vw;
-  background: radial-gradient(circle, rgba(147,51,234,0.2) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(0,255,255,0.3) 0%, transparent 70%);
   bottom: -20vh;
   right: -10vw;
   animation-delay: -5s;
@@ -155,7 +155,7 @@
 
 @media (max-width: 900px) {
   .room-content {
-    flex-direction: column;
+    flex-direction: column-reverse; /* Puts chat section at the top */
     padding: 20px;
     gap: 20px;
   }
