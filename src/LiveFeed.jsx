@@ -35,6 +35,7 @@ export default function LiveFeed() {
           fromUserId: auth.currentUser.uid,
           fromUserName: generateUserName(auth.currentUser.uid),
           toUserId: targetUser.userId,
+          toUserName: targetUser.displayName,
           songTitle: targetUser.songTitle,
           status: 'pending',
           timestamp: Date.now()

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, where, orderBy, limit, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy, limit, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from './firebase';
 import './ReactionOverlay.css';
@@ -84,10 +84,38 @@ export default function ReactionOverlay({ setDjSession }) {
     return () => unsubscribeAuth();
   }, []);
 
+  // Listen for outgoing accepted invites (for User A requesting to join User B)
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const qOutgoing = query(
+          collection(db, 'invites'),
+          where('fromUserId', '==', user.uid)
+        );
+
+        const unsubscribeOutgoing = onSnapshot(qOutgoing, (snapshot) => {
+          const oneMinuteAgo = Date.now() - 60000;
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            // If our request was accepted recently, we become the slave to the target
+            if (data.status === 'accepted' && data.timestamp >= oneMinuteAgo) {
+              if (setDjSession) {
+                setDjSession({ id: data.toUserId, name: data.toUserName || 'DJ' });
+              }
+              // Delete the invite so we don't trigger it again on reload
+              deleteDoc(doc(db, 'invites', docSnap.id)).catch(()=>{});
+            }
+          });
+        });
+        
+        return () => unsubscribeOutgoing();
+      }
+    });
+    return () => unsubscribeAuth();
+  }, [setDjSession]);
+
   const handleAcceptInvite = (invite) => {
-    if (setDjSession) {
-      setDjSession({ id: invite.fromUserId, name: invite.fromUserName });
-    }
+    // User B just accepts it, doesn't change their own session.
     updateDoc(doc(db, 'invites', invite.id), { status: 'accepted' }).catch(()=>{});
   };
 
@@ -104,7 +132,7 @@ export default function ReactionOverlay({ setDjSession }) {
           <div key={`invite-${invite.id}`} className="reaction-toast invite-toast">
             <span className="toast-emoji">🎧</span>
             <span className="toast-text">
-              <strong>{invite.fromUserName}</strong> invited you to listen to <strong>{invite.songTitle}</strong> together!
+              <strong>{invite.fromUserName}</strong> wants to listen with you!
             </span>
             <div className="invite-actions">
               <button onClick={() => handleAcceptInvite(invite)} className="btn-accept">Accept</button>

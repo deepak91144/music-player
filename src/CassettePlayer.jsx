@@ -76,12 +76,9 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
         
         const audio = audioRef.current;
         if (audio) {
-          // If DJ is playing, expected time is offset by latency. If paused, it's just the playbackTime.
-          const timeElapsedSinceUpdate = data.isPlaying ? (Date.now() - data.timestamp) / 1000 : 0;
-          const expectedTime = data.playbackTime + timeElapsedSinceUpdate;
-          
-          if (Math.abs(audio.currentTime - expectedTime) > 1.5) {
-             audio.currentTime = expectedTime;
+          // Snap directly to the reported playback time if we're out of sync by > 2s
+          if (Math.abs(audio.currentTime - data.playbackTime) > 2.0) {
+             audio.currentTime = data.playbackTime;
           }
 
           if (data.isPlaying && audio.paused) {
@@ -95,6 +92,26 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     });
     return () => unsubscribe();
   }, [djSession, currentTrackIndex, tracks, setCurrentTrackIndex]);
+
+  // Master Heartbeat: Sync perfectly every 5 seconds
+  useEffect(() => {
+    if (!user || djSession || !isPlaying) return;
+    
+    const interval = setInterval(() => {
+      setDoc(doc(db, 'now_playing', user.uid), {
+        userId: user.uid,
+        displayName: generateUserName(user.uid),
+        songTitle: currentTrack.title,
+        artist: currentTrack.artist,
+        cover: currentTrack.cover,
+        timestamp: Date.now(),
+        playbackTime: audioRef.current?.currentTime || 0,
+        isPlaying: true
+      }, { merge: true }).catch(() => {});
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [user, djSession, isPlaying, currentTrack]);
 
   // Create / update audio element on track change
   useEffect(() => {
