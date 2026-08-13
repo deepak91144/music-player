@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, where, orderBy, limit, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { db, auth } from './firebase';
+import { db, auth, generateUserName } from './firebase';
 import './ReactionOverlay.css';
 
 export default function ReactionOverlay({ setDjSession }) {
@@ -100,7 +100,13 @@ export default function ReactionOverlay({ setDjSession }) {
             // If our request was accepted recently, we become the slave to the target
             if (data.status === 'accepted' && data.timestamp >= oneMinuteAgo) {
               if (setDjSession) {
-                setDjSession({ id: data.toUserId, name: data.toUserName || 'DJ' });
+                setDjSession({ 
+                  roomId: data.toUserId,
+                  id: data.toUserId, 
+                  name: data.toUserName || 'DJ',
+                  partnerName: data.toUserName || 'DJ',
+                  isMaster: false
+                });
               }
               // Delete the invite so we don't trigger it again on reload
               deleteDoc(doc(db, 'invites', docSnap.id)).catch(()=>{});
@@ -115,7 +121,16 @@ export default function ReactionOverlay({ setDjSession }) {
   }, [setDjSession]);
 
   const handleAcceptInvite = (invite) => {
-    // User B just accepts it, doesn't change their own session.
+    // User B accepts it. User B becomes the Master of the new room.
+    if (setDjSession && auth.currentUser) {
+      setDjSession({
+        roomId: auth.currentUser.uid,
+        id: auth.currentUser.uid,
+        name: generateUserName(auth.currentUser.uid),
+        partnerName: invite.fromUserName,
+        isMaster: true
+      });
+    }
     updateDoc(doc(db, 'invites', invite.id), { status: 'accepted' }).catch(()=>{});
   };
 

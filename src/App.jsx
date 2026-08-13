@@ -2,6 +2,7 @@ import { useState } from 'react';
 import CassettePlayer from './CassettePlayer';
 import LiveFeed from './LiveFeed';
 import ReactionOverlay from './ReactionOverlay';
+import RoomPage from './RoomPage';
 import './App.css';
 
 // Import background image
@@ -72,36 +73,45 @@ export default function App() {
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [djSession, setDjSession] = useState(null);
 
+  const renderPlayer = () => (
+    <CassettePlayer
+      tracks={TRACKS}
+      currentTrackIndex={currentTrackIndex}
+      setCurrentTrackIndex={setCurrentTrackIndex}
+      djSession={djSession}
+      setDjSession={setDjSession}
+    />
+  );
+
   return (
-      <div className="app">
-      {/* Background Slideshow */}
-      <div className="bg-slideshow">
-        {BG_IMAGES.map((src, i) => (
-          <div className="bg-slide" key={i}>
-            <img src={src} alt="" />
+    <>
+      {djSession ? (
+        <RoomPage djSession={djSession} setDjSession={setDjSession}>
+          {renderPlayer()}
+        </RoomPage>
+      ) : (
+        <div className="app">
+          <div className="bg-slideshow">
+            {BG_IMAGES.map((src, i) => (
+              <div className="bg-slide" key={i}>
+                <img src={src} alt="" />
+              </div>
+            ))}
+            <div className="bg-overlay" />
           </div>
-        ))}
-        <div className="bg-overlay" />
-      </div>
 
-      <LiveFeed />
-      <ReactionOverlay setDjSession={setDjSession} />
+          <LiveFeed />
+          <ReactionOverlay setDjSession={setDjSession} />
 
-      {/* Love Quote Overlay Banner */}
-      <div className="love-quote-container">
-        <p className="love-quote">
-          I will look for you in every lifetime until we finally stay
-        </p>
-      </div>
+          <div className="love-quote-container">
+            <p className="love-quote">
+              I will look for you in every lifetime until we finally stay
+            </p>
+          </div>
 
-      {/* Cassette Player */}
-      <CassettePlayer
-        tracks={TRACKS}
-        currentTrackIndex={currentTrackIndex}
-        setCurrentTrackIndex={setCurrentTrackIndex}
-        djSession={djSession}
-        setDjSession={setDjSession}
-      />
-    </div>
+          {renderPlayer()}
+        </div>
+      )}
+    </>
   );
 }

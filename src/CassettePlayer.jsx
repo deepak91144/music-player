@@ -23,9 +23,9 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     signInAnonymousUser().then(u => setUser(u));
   }, []);
 
-  // Sync playing state to Firestore (Only if NOT in DJ mode)
+  // Sync playing state to Firestore (Only if NOT in DJ mode or if DJ Master)
   useEffect(() => {
-    if (!user || djSession) return;
+    if (!user || (djSession && !djSession.isMaster)) return;
     
     const userRef = doc(db, 'now_playing', user.uid);
     
@@ -62,7 +62,7 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
 
   // Slave Mode: Listen to DJ's state
   useEffect(() => {
-    if (!djSession) return;
+    if (!djSession || djSession.isMaster) return;
     
     const unsubscribe = onSnapshot(doc(db, 'now_playing', djSession.id), (docSnap) => {
       if (docSnap.exists()) {
@@ -95,7 +95,8 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
 
   // Master Heartbeat: Sync perfectly every 5 seconds
   useEffect(() => {
-    if (!user || djSession || !isPlaying) return;
+    if (!user || !isPlaying) return;
+    if (djSession && !djSession.isMaster) return; // Slaves don't send heartbeat
     
     const interval = setInterval(() => {
       setDoc(doc(db, 'now_playing', user.uid), {
@@ -200,13 +201,28 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     if (audioRef.current && audioRef.current.currentTime > 3) {
       audioRef.current.currentTime = 0;
       setCurrentTime(0);
+      // Force sync to firebase on this internal seek
+      if (user && isPlaying && (!djSession || djSession.isMaster)) {
+        setDoc(doc(db, 'now_playing', user.uid), {
+          userId: user.uid,
+          displayName: generateUserName(user.uid),
+          songTitle: currentTrack.title,
+          artist: currentTrack.artist,
+          cover: currentTrack.cover,
+          timestamp: Date.now(),
+          playbackTime: 0,
+          isPlaying: true
+        }, { merge: true }).catch(()=>{});
+      }
     } else {
+      if (audioRef.current) audioRef.current.currentTime = 0; // Prevent ghost timestamp
       const prevIndex = currentTrackIndex > 0 ? currentTrackIndex - 1 : tracks.length - 1;
       setCurrentTrackIndex(prevIndex);
     }
-  }, [currentTrackIndex, tracks.length, setCurrentTrackIndex]);
+  }, [currentTrackIndex, tracks.length, setCurrentTrackIndex, user, isPlaying, djSession, currentTrack]);
 
   const handleNext = useCallback(() => {
+    if (audioRef.current) audioRef.current.currentTime = 0; // Prevent ghost timestamp
     const nextIndex = (currentTrackIndex + 1) % tracks.length;
     setCurrentTrackIndex(nextIndex);
   }, [currentTrackIndex, tracks.length, setCurrentTrackIndex]);
@@ -270,14 +286,9 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
         onError={handleAudioError}
       />
 
-      {djSession && (
-        <div className="dj-mode-banner">
-          🎧 Listening live with <strong>{djSession.name}</strong>
-          <button onClick={() => setDjSession(null)} className="leave-dj-btn">Leave</button>
-        </div>
-      )}
-
-      <div className={`modern-player ${isPlaying ? 'is-playing' : ''} ${djSession ? 'slave-mode' : ''}`}>
+      {/* Removed the inline dj-mode-banner since RoomPage handles it */}
+      
+      <div className={`modern-player ${isPlaying ? 'is-playing' : ''} ${(djSession && !djSession.isMaster) ? 'slave-mode' : ''}`}>
         {/* Track Info */}
         <div className="player-info">
           <div className="player-title">{isLoading ? 'Loading...' : currentTrack.title}</div>
@@ -285,7 +296,7 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
 
         {/* Progress Bar (Clickable only if not slaved) */}
         <div 
-          className={`progress-container ${djSession ? 'disabled' : ''}`}
+          className={`progress-container ${(djSession && !djSession.isMaster) ? 'disabled' : ''}`}
           ref={progressRef} 
           onClick={handleSeek}
         >
