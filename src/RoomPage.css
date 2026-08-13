@@ -4,7 +4,7 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: #050508;
+  background: #0d0d12; /* One single solid background color */
   z-index: 100;
   display: flex;
   flex-direction: column;
@@ -13,77 +13,17 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Dynamic Album Art Backdrop (Apple Music Blurred Canvas) */
-.dynamic-album-backdrop {
-  position: absolute;
-  top: -10%;
-  left: -10%;
-  width: 120%;
-  height: 120%;
-  background-size: cover;
-  background-position: center;
-  filter: blur(90px) saturate(160%) brightness(0.6);
-  transform: scale(1.1);
-  transition: background-image 1.5s ease-in-out;
-  z-index: 0;
-  opacity: 0.7;
-}
-
-.room-overlay-gradient {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle at 50% 30%, rgba(10, 10, 20, 0.4) 0%, rgba(5, 5, 10, 0.92) 80%);
-  z-index: 0;
-}
-
-/* Subtle Glowing Lights */
-.ambient-glow-1, .ambient-glow-2 {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(120px);
-  z-index: 0;
-  pointer-events: none;
-}
-
-.ambient-glow-1 {
-  width: 50vw;
-  height: 50vw;
-  background: radial-gradient(circle, rgba(255, 45, 85, 0.15) 0%, transparent 70%);
-  top: -15vh;
-  left: 20vw;
-  animation: pulse-slow 12s ease-in-out infinite alternate;
-}
-
-.ambient-glow-2 {
-  width: 60vw;
-  height: 60vw;
-  background: radial-gradient(circle, rgba(98, 0, 238, 0.12) 0%, transparent 70%);
-  bottom: -20vh;
-  right: -10vw;
-  animation: pulse-slow 16s ease-in-out infinite alternate-reverse;
-}
-
-@keyframes pulse-slow {
-  0% { transform: scale(1) translate(0, 0); opacity: 0.4; }
-  100% { transform: scale(1.15) translate(20px, 30px); opacity: 0.8; }
-}
-
-/* Ultra-Sleek Glass Header */
+/* Header - Completely flat, zero borders */
 .room-header {
   position: relative;
   z-index: 10;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 36px;
-  background: rgba(18, 18, 28, 0.45);
-  backdrop-filter: blur(25px) saturate(180%);
-  -webkit-backdrop-filter: blur(25px) saturate(180%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  padding: 20px 40px;
+  background: rgba(255, 255, 255, 0.02);
+  border: none;
+  box-shadow: none;
 }
 
 .room-title-block {
@@ -96,8 +36,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 45, 85, 0.12);
-  border: 1px solid rgba(255, 45, 85, 0.3);
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
   padding: 5px 12px;
   border-radius: 20px;
 }
@@ -105,23 +45,15 @@
 .pulse-dot {
   width: 8px;
   height: 8px;
-  background-color: #ff2d55;
+  background-color: #32d74b;
   border-radius: 50%;
-  box-shadow: 0 0 10px #ff2d55;
-  animation: live-pulse 1.8s infinite;
-}
-
-@keyframes live-pulse {
-  0% { opacity: 0.4; transform: scale(0.9); }
-  50% { opacity: 1; transform: scale(1.2); }
-  100% { opacity: 0.4; transform: scale(0.9); }
 }
 
 .live-text {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.5px;
-  color: #ff2d55;
+  color: #32d74b;
   text-transform: uppercase;
 }
 
@@ -129,9 +61,7 @@
   margin: 0;
   font-weight: 600;
   font-size: 20px;
-  letter-spacing: -0.3px;
   color: #ffffff;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .room-status-block {
@@ -147,45 +77,40 @@
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
+  border: none;
 }
 
 .role-badge.master {
   background: rgba(50, 215, 75, 0.15);
-  border: 1px solid rgba(50, 215, 75, 0.4);
   color: #32d74b;
 }
 
 .role-badge.listener {
   background: rgba(10, 132, 255, 0.15);
-  border: 1px solid rgba(10, 132, 255, 0.4);
   color: #0a84ff;
 }
 
 .partner-info {
   font-size: 14px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .leave-room-btn {
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: none;
   color: rgba(255, 255, 255, 0.9);
   padding: 8px 18px;
   border-radius: 20px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
-  transition: all 0.25s ease;
-  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
 }
 
 .leave-room-btn:hover {
-  background: rgba(255, 69, 58, 0.2);
-  border-color: rgba(255, 69, 58, 0.5);
-  color: #ff453a;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 15px rgba(255, 69, 58, 0.2);
+  background: rgba(255, 59, 48, 0.2);
+  color: #ff3b30;
 }
 
 .room-content {
@@ -210,7 +135,9 @@
 
 .room-player-section .cassette-container {
   transform: scale(1.15);
-  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.6));
+  filter: none;
+  box-shadow: none;
+  border: none;
 }
 
 .room-chat-section {
@@ -218,8 +145,9 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-radius: 24px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
 }
 
 @media (max-width: 900px) {
