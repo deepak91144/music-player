@@ -3,76 +3,24 @@ import CassettePlayer from './CassettePlayer';
 import LiveFeed from './LiveFeed';
 import ReactionOverlay from './ReactionOverlay';
 import RoomPage from './RoomPage';
+import JioSaavnExplorer from './JioSaavnExplorer';
+import JioSaavnLyrics from './JioSaavnLyrics';
+import { searchSongs } from './jiosaavnService';
 import './App.css';
 
 // Import background image
 import usBg from './assets/images/us.png';
 
-// Audio files are now served from the public/audio folder for instant streaming
-const AUDIO_FILES = [
-  "Agar Tum Saath Ho Tamasha 320 Kbps.mp3",
-  "Ajab Si Om Shanti Om 320 Kbps.mp3",
-  "Bol Do Na Zara Azhar 320 Kbps.mp3",
-  "Dil Ibaadat Tum Mile Original Motion Picturetrack 320 Kbps.mp3",
-  "Haan Tu Hain Jannat 320 Kbps.mp3",
-  "Hey Shona Ta Ra Rum Pum 320 Kbps.mp3",
-  "I Am In Love Once Upon A Time In Mumbaai 320 Kbps.mp3",
-  "Jab Tak M.s. Dhoni The Untold Story 320 Kbps.mp3",
-  "Kaise Hua Kabir Singh 320 Kbps.mp3",
-  "Kaun Tujhe M.s. Dhoni The Untold Story 320 Kbps.mp3",
-  "Labon Ko Bhool Bhulaiyaa 320 Kbps.mp3",
-  "Mujhe De De Har Gham Tera Haunted 320 Kbps.mp3",
-  "Pehla Pyaar (PenduJatt.Com.Se).mp3",
-  "Soniye Heartless 320 Kbps.mp3",
-  "Tu Hi Haqeeqat Tum Mile Original Motion Picturetrack 320 Kbps.mp3",
-  "Tu Hi Meri Shab Hai Gangster 320 Kbps.mp3",
-  "Tum Hi Ho Aashiqui 2 320 Kbps.mp3",
-  "Tum Se Hi Jab We Met 320 Kbps (1).mp3",
-  "Yun Hi Re David 320 Kbps.mp3",
-  "Zara Sa Jannat 320 Kbps.mp3"
-];
-
-const covers = ['/album_midnight.png', '/album_neon.png', '/album_aurora.png', '/album_ocean.png'];
-
-const shuffleArray = (array) => {
-  const newArray = [...array];
-  for (let i = newArray.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-  }
-  return newArray;
-};
-
-const TRACKS = shuffleArray(
-  AUDIO_FILES.map((filename, index) => {
-    // Clean up the title (remove " 320 Kbps" and other tags)
-    const cleanTitle = filename
-      .replace(/\s*320 Kbps.*/i, '')
-      .replace(/\s*Original Motion Picturetrack/i, '')
-      .replace(/\(PenduJatt\.Com\.Se\)/i, '')
-      .replace('.mp3', '')
-      .trim();
-    
-    return {
-      id: index + 1,
-      title: cleanTitle,
-      artist: 'Unknown Artist',
-      album: 'Unknown Album',
-      genre: 'Bollywood',
-      cover: covers[index % covers.length],
-      src: `/audio/${filename}`,
-    };
-  })
-);
-
-const BG_IMAGES = [
-  usBg,
-];
+const BG_IMAGES = [usBg];
 
 export default function App() {
+  const [tracks, setTracks] = useState([]);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
-  
-  // Initialize from localStorage so rooms survive page refreshes
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isLyricsOpen, setIsLyricsOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  // Initialize djSession from localStorage
   const [djSession, setDjSession] = useState(() => {
     try {
       const saved = localStorage.getItem('musicPlayer_djSession');
@@ -82,7 +30,46 @@ export default function App() {
     }
   });
 
-  // Sync djSession to localStorage
+  // Helper to shuffle array
+  const shuffleArray = (array) => {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+
+  // Fetch initial tracks from multiple diverse API categories on mount
+  useEffect(() => {
+    let isMounted = true;
+    const queries = ['KK Romantic Songs', 'KK Best Love Songs', 'KK Hits Hindi Romance', 'KK Romantic Duets', 'KK Soulful Love Songs'];
+    
+    Promise.all(queries.map(q => searchSongs(q, 1, 15).catch(() => [])))
+      .then(resultsArray => {
+        if (!isMounted) return;
+        const allSongs = resultsArray.flat();
+        
+        // Deduplicate songs by clean title
+        const uniqueMap = new Map();
+        allSongs.forEach(song => {
+          if (song && song.title && !uniqueMap.has(song.title.toLowerCase())) {
+            uniqueMap.set(song.title.toLowerCase(), song);
+          }
+        });
+
+        const uniqueSongs = shuffleArray(Array.from(uniqueMap.values()));
+        if (uniqueSongs.length > 0) {
+          setTracks(uniqueSongs);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load initial API songs:', err);
+      });
+
+    return () => { isMounted = false; };
+  }, []);
+
   useEffect(() => {
     if (djSession) {
       localStorage.setItem('musicPlayer_djSession', JSON.stringify(djSession));
@@ -91,9 +78,47 @@ export default function App() {
     }
   }, [djSession]);
 
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // Play a song directly from online search & trigger auto-play in cassette player
+  const handlePlayTrack = (song) => {
+    let index = tracks.findIndex(t => t.id === song.id || t.title === song.title);
+    if (index !== -1) {
+      if (index === currentTrackIndex) {
+        // Re-trigger track change if same song selected
+        setCurrentTrackIndex(-1);
+        setTimeout(() => setCurrentTrackIndex(index), 20);
+      } else {
+        setCurrentTrackIndex(index);
+      }
+    } else {
+      setTracks(prev => {
+        const updated = [...prev, song];
+        setCurrentTrackIndex(updated.length - 1);
+        return updated;
+      });
+    }
+    setIsSearchOpen(false);
+    showToast(`▶ Now Playing: ${song.title}`);
+  };
+
+  // Add song to playlist queue
+  const handleAddToQueue = (song) => {
+    const exists = tracks.some(t => t.id === song.id);
+    if (!exists) {
+      setTracks(prev => [...prev, song]);
+    }
+    showToast(`➕ Added "${song.title}" to Queue!`);
+  };
+
+  const currentTrack = tracks[currentTrackIndex] || tracks[0] || {};
+
   const renderPlayer = () => (
     <CassettePlayer
-      tracks={TRACKS}
+      tracks={tracks}
       currentTrackIndex={currentTrackIndex}
       setCurrentTrackIndex={setCurrentTrackIndex}
       djSession={djSession}
@@ -103,11 +128,34 @@ export default function App() {
 
   return (
     <>
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="app-toast">
+          {toastMessage}
+        </div>
+      )}
+
+      {/* Online Music Explorer Modal */}
+      <JioSaavnExplorer
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onPlayTrack={handlePlayTrack}
+        onAddToQueue={handleAddToQueue}
+        currentTrack={currentTrack}
+      />
+
+      {/* Lyrics Modal */}
+      <JioSaavnLyrics
+        song={currentTrack}
+        isOpen={isLyricsOpen}
+        onClose={() => setIsLyricsOpen(false)}
+      />
+
       {djSession ? (
         <RoomPage 
           djSession={djSession} 
           setDjSession={setDjSession} 
-          currentTrack={TRACKS[currentTrackIndex]}
+          currentTrack={currentTrack}
         >
           {renderPlayer()}
         </RoomPage>
@@ -129,6 +177,36 @@ export default function App() {
             <p className="love-quote">
               I will look for you in every lifetime until we finally stay
             </p>
+          </div>
+
+          {/* Transparent Action Controls (Positioned directly above cassette player) */}
+          <div className="player-top-actions">
+            <button 
+              className="floating-search-btn"
+              onClick={() => setIsSearchOpen(true)}
+              title="Search Songs"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <span>Search Songs</span>
+            </button>
+
+            {currentTrack.hasLyrics && (
+              <button
+                className="floating-lyrics-btn"
+                onClick={() => setIsLyricsOpen(true)}
+                title="View Song Lyrics"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="22"></line>
+                </svg>
+                <span>Lyrics</span>
+              </button>
+            )}
           </div>
 
           {renderPlayer()}

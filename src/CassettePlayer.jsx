@@ -13,10 +13,9 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
   const [user, setUser] = useState(null);
 
   const audioRef = useRef(null);
-  const progressRef = useRef(null);
   const animationRef = useRef(null);
 
-  const currentTrack = tracks[currentTrackIndex] || tracks[0];
+  const currentTrack = tracks[currentTrackIndex] || tracks[0] || {};
 
   // Sign in anonymously on mount
   useEffect(() => {
@@ -33,9 +32,9 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     return () => window.removeEventListener('beforeunload', handleUnload);
   }, [user]);
 
-  // Sync playing state to Firestore (Only if NOT in DJ mode or if DJ Master)
+  // Sync playing state to Firestore
   useEffect(() => {
-    if (!user || (djSession && !djSession.isMaster)) return;
+    if (!user || (djSession && !djSession.isMaster) || !currentTrack.title) return;
     
     const userRef = doc(db, 'now_playing', user.uid);
     
@@ -44,21 +43,19 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
         userId: user.uid,
         displayName: generateUserName(user.uid),
         songTitle: currentTrack.title,
-        artist: currentTrack.artist,
-        cover: currentTrack.cover,
+        artist: currentTrack.artist || 'Artist',
+        cover: currentTrack.cover || '',
         timestamp: Date.now(),
         playbackTime: audioRef.current?.currentTime || 0,
         isPlaying: true
       }).catch(err => console.warn("Firestore error:", err));
     } else {
-      // We can also just update it to isPlaying: false, but deleting is fine too.
-      // Let's actually update it so the slave knows it paused.
       setDoc(userRef, {
         userId: user.uid,
         displayName: generateUserName(user.uid),
         songTitle: currentTrack.title,
-        artist: currentTrack.artist,
-        cover: currentTrack.cover,
+        artist: currentTrack.artist || 'Artist',
+        cover: currentTrack.cover || '',
         timestamp: Date.now(),
         playbackTime: audioRef.current?.currentTime || 0,
         isPlaying: false
@@ -86,12 +83,11 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
              try { audioRef.current.currentTime = 0; } catch (_) {}
            }
            setCurrentTrackIndex(trackIndex);
-           return; // Return early to let track switch effect load the new song cleanly
+           return;
         }
         
         const audio = audioRef.current;
         if (audio) {
-          // Snap directly to the reported playback time if we're out of sync by > 2s
           if (Math.abs(audio.currentTime - data.playbackTime) > 2.0) {
              audio.currentTime = data.playbackTime;
           }
@@ -110,16 +106,16 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
 
   // Master Heartbeat: Sync perfectly every 5 seconds
   useEffect(() => {
-    if (!user || !isPlaying) return;
-    if (djSession && !djSession.isMaster) return; // Slaves don't send heartbeat
+    if (!user || !isPlaying || !currentTrack.title) return;
+    if (djSession && !djSession.isMaster) return;
     
     const interval = setInterval(() => {
       setDoc(doc(db, 'now_playing', user.uid), {
         userId: user.uid,
         displayName: generateUserName(user.uid),
         songTitle: currentTrack.title,
-        artist: currentTrack.artist,
-        cover: currentTrack.cover,
+        artist: currentTrack.artist || 'Artist',
+        cover: currentTrack.cover || '',
         timestamp: Date.now(),
         playbackTime: audioRef.current?.currentTime || 0,
         isPlaying: true
@@ -129,12 +125,11 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     return () => clearInterval(interval);
   }, [user, djSession, isPlaying, currentTrack]);
 
-  // Create / update audio element on track change
+  // Create / update audio element on track change & auto-play
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || !currentTrack.src) return;
 
-    // Immediately pause current playback and zero out old position to prevent ghost audio
     audio.pause();
     try { audio.currentTime = 0; } catch (_) {}
     
@@ -145,14 +140,15 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     setCurrentTime(0);
     setDuration(0);
 
-    // If we were already playing, auto-play the new track
-    if (isPlaying) {
-      const playPromise = audio.play();
-      if (playPromise) {
-        playPromise.catch(() => {
-          setIsPlaying(false);
-        });
-      }
+    // Always auto-play when a new track is loaded
+    const playPromise = audio.play();
+    if (playPromise) {
+      playPromise.then(() => {
+        setIsPlaying(true);
+      }).catch((err) => {
+        console.warn('Auto-play required user interaction or failed:', err);
+        setIsPlaying(false);
+      });
     }
   }, [currentTrackIndex, currentTrack.src]);
 
@@ -163,7 +159,7 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     }
   }, [volume, isMuted]);
 
-  // Update progress via requestAnimationFrame for smooth UI
+  // Update progress via requestAnimationFrame
   const updateProgress = useCallback(() => {
     const audio = audioRef.current;
     if (audio && !audio.paused) {
@@ -214,6 +210,34 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     }
   };
 
+  const playedIndicesRef = useRef([]);
+
+  // Get a random next track index that avoids repeating recent tracks
+  const getRandomNextIndex = useCallback(() => {
+    if (!tracks || tracks.length <= 1) return 0;
+    
+    const available = [];
+    for (let i = 0; i < tracks.length; i++) {
+      if (i !== currentTrackIndex && !playedIndicesRef.current.includes(i)) {
+        available.push(i);
+      }
+    }
+    
+    if (available.length === 0) {
+      playedIndicesRef.current = [currentTrackIndex];
+      for (let i = 0; i < tracks.length; i++) {
+        if (i !== currentTrackIndex) available.push(i);
+      }
+    }
+
+    const randomIndex = available[Math.floor(Math.random() * available.length)];
+    playedIndicesRef.current.push(randomIndex);
+    if (playedIndicesRef.current.length > Math.min(tracks.length - 1, 15)) {
+      playedIndicesRef.current.shift();
+    }
+    return randomIndex;
+  }, [tracks, currentTrackIndex]);
+
   const handlePrev = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -221,14 +245,13 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     }
     if (currentTime > 3) {
       setCurrentTime(0);
-      // Force sync to firebase on this internal seek
       if (user && isPlaying && (!djSession || djSession.isMaster)) {
         setDoc(doc(db, 'now_playing', user.uid), {
           userId: user.uid,
           displayName: generateUserName(user.uid),
           songTitle: currentTrack.title,
-          artist: currentTrack.artist,
-          cover: currentTrack.cover,
+          artist: currentTrack.artist || 'Artist',
+          cover: currentTrack.cover || '',
           timestamp: Date.now(),
           playbackTime: 0,
           isPlaying: true
@@ -238,59 +261,16 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
       const prevIndex = currentTrackIndex > 0 ? currentTrackIndex - 1 : tracks.length - 1;
       setCurrentTrackIndex(prevIndex);
     }
-  }, [currentTrackIndex, tracks.length, setCurrentTrackIndex, user, isPlaying, djSession, currentTrack, currentTime]);
+  }, [currentTrackIndex, tracks ? tracks.length : 0, setCurrentTrackIndex, user, isPlaying, djSession, currentTrack, currentTime]);
 
   const handleNext = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
       try { audioRef.current.currentTime = 0; } catch (_) {}
     }
-    const nextIndex = (currentTrackIndex + 1) % tracks.length;
+    const nextIndex = getRandomNextIndex();
     setCurrentTrackIndex(nextIndex);
-  }, [currentTrackIndex, tracks.length, setCurrentTrackIndex]);
-
-  // Seek via progress bar click
-  const handleSeek = (e) => {
-    if (djSession) return; // Disabled in slave mode
-    const bar = progressRef.current;
-    if (!bar || !audioRef.current) return;
-    const rect = bar.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const pct = Math.max(0, Math.min(1, clickX / rect.width));
-    const seekTime = pct * (audioRef.current.duration || 0);
-    audioRef.current.currentTime = seekTime;
-    setCurrentTime(seekTime);
-    
-    // Force sync to firebase on seek
-    if (user && isPlaying && !djSession) {
-      setDoc(doc(db, 'now_playing', user.uid), {
-        userId: user.uid,
-        displayName: generateUserName(user.uid),
-        songTitle: currentTrack.title,
-        artist: currentTrack.artist,
-        cover: currentTrack.cover,
-        timestamp: Date.now(),
-        playbackTime: seekTime,
-        isPlaying: true
-      }).catch(()=>{});
-    }
-  };
-
-  // Volume toggle
-  const toggleMute = () => setIsMuted(prev => !prev);
-
-  const formatTime = (s) => {
-    if (!s || isNaN(s)) return '0:00';
-    const mins = Math.floor(s / 60);
-    const secs = Math.floor(s % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const d = duration || 0;
-  const progressPct = d > 0 ? (currentTime / d) * 100 : 0;
-
-  // Reel speed slows as tape "runs out"
-  const reelSpeed = d > 0 ? Math.max(0.8, 2.5 - (progressPct / 100) * 1.5) : 2;
+  }, [getRandomNextIndex, setCurrentTrackIndex]);
 
   return (
     <div className="modern-player-wrapper">
@@ -307,31 +287,14 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
         onEnded={handleEnded}
         onError={handleAudioError}
       />
-
-      {/* Removed the inline dj-mode-banner since RoomPage handles it */}
       
       <div className={`modern-player ${isPlaying ? 'is-playing' : ''} ${(djSession && !djSession.isMaster) ? 'slave-mode' : ''}`}>
-        {/* Track Info */}
+        {/* Song Name Above */}
         <div className="player-info">
-          <div className="player-title">{isLoading ? 'Loading...' : currentTrack.title}</div>
+          <div className="player-title">{isLoading ? 'Loading...' : (currentTrack.title || 'Music Track')}</div>
         </div>
 
-        {/* Progress Bar (Clickable only if not slaved) */}
-        <div 
-          className={`progress-container ${(djSession && !djSession.isMaster) ? 'disabled' : ''}`}
-          ref={progressRef} 
-          onClick={handleSeek}
-        >
-          <div className="progress-bar-bg">
-            <div className="progress-bar-fill" style={{ width: `${progressPct}%` }}></div>
-          </div>
-          <div className="progress-time">
-            <span>{formatTime(currentTime)}</span>
-            <span>{formatTime(d)}</span>
-          </div>
-        </div>
-
-        {/* Controls */}
+        {/* Playback Controls Below (No timestamp) */}
         <div className="player-controls">
           <button className="player-btn" onClick={handlePrev} title="Previous">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>

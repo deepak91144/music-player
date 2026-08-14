@@ -1,0 +1,502 @@
+/* Ultra-Transparent Glassmorphism Modal with Soft Subtle Sheen */
+
+.jio-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: jioFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes jioFadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.jio-modal-container {
+  width: 100%;
+  max-width: 840px;
+  max-height: 88vh;
+  background: rgba(25, 12, 42, 0.22);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  color: #ffffff;
+}
+
+/* Header */
+.jio-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  flex-shrink: 0;
+}
+
+.jio-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.jio-brand h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.jio-badge-pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e879f9;
+  box-shadow: 0 0 10px #e879f9;
+  animation: jioPulse 1.8s infinite;
+}
+
+@keyframes jioPulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(232, 121, 249, 0.6); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(232, 121, 249, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(232, 121, 249, 0); }
+}
+
+.jio-tag {
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #f472b6;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+}
+
+.jio-close-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-size: 1.6rem;
+  line-height: 1;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.jio-close-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  transform: rotate(90deg);
+}
+
+/* Search Box Container */
+.jio-search-box {
+  position: relative;
+  padding: 16px 24px 14px 24px;
+  flex-shrink: 0;
+}
+
+.jio-search-icon {
+  position: absolute;
+  left: 38px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+}
+
+.jio-search-input {
+  width: 100%;
+  padding: 14px 44px 14px 48px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 16px;
+  color: #ffffff;
+  font-size: 0.98rem;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.jio-search-input:focus {
+  border-color: rgba(232, 121, 249, 0.6);
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 20px rgba(232, 121, 249, 0.2);
+}
+
+.jio-clear-btn {
+  position: absolute;
+  right: 36px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+/* Live Autocomplete Dropdown floating directly below input */
+.jio-autocomplete-dropdown {
+  position: absolute;
+  top: calc(100% - 6px);
+  left: 24px;
+  right: 24px;
+  background: rgba(18, 9, 32, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  z-index: 1000;
+  max-height: 280px;
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(25px);
+  padding: 8px 0;
+}
+
+.jio-auto-label {
+  padding: 6px 16px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 700;
+}
+
+.jio-auto-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.jio-auto-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.jio-auto-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.jio-auto-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.jio-auto-sub {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Category Pills */
+.jio-categories-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 24px 14px 24px;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+
+.jio-categories-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.jio-cat-pill {
+  padding: 8px 16px;
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jio-cat-pill:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.jio-cat-pill.active {
+  background: rgba(255, 255, 255, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Modal Body */
+.jio-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 24px 16px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Song List */
+.jio-song-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.jio-song-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  transition: all 0.2s ease;
+}
+
+.jio-song-card:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateX(4px);
+}
+
+.jio-song-card.playing {
+  background: rgba(232, 121, 249, 0.2);
+  border-color: rgba(232, 121, 249, 0.5);
+}
+
+.jio-song-cover-wrap {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.jio-song-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.jio-overlay-play-btn {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  border: none;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.jio-song-card:hover .jio-overlay-play-btn,
+.jio-song-card.playing .jio-overlay-play-btn {
+  opacity: 1;
+}
+
+/* Animated Equalizer Bars */
+.jio-playing-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 16px;
+}
+
+.jio-playing-bars span {
+  width: 3px;
+  background: #e879f9;
+  border-radius: 2px;
+  animation: jioBar 0.8s infinite ease-in-out alternate;
+}
+
+.jio-playing-bars span:nth-child(1) { height: 60%; animation-delay: 0.1s; }
+.jio-playing-bars span:nth-child(2) { height: 100%; animation-delay: 0.3s; }
+.jio-playing-bars span:nth-child(3) { height: 40%; animation-delay: 0.2s; }
+
+@keyframes jioBar {
+  0% { height: 20%; }
+  100% { height: 100%; }
+}
+
+/* Meta */
+.jio-song-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.jio-song-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jio-song-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jio-badge-lyrics {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(236, 72, 153, 0.25);
+  color: #f472b6;
+  border: 1px solid rgba(236, 72, 153, 0.4);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.jio-song-artist {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.jio-song-sub {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 2px;
+}
+
+/* Actions */
+.jio-song-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jio-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jio-action-btn.play {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.jio-action-btn.play:hover {
+  background: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+.jio-action-btn.queue {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 8px;
+}
+
+.jio-action-btn.queue:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+/* Loading & Empty States */
+.jio-loading-state,
+.jio-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+}
+
+.jio-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: jioSpin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes jioSpin {
+  to { transform: rotate(360deg); }
+}
+
+.jio-empty-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+}
+
+/* Footer */
+.jio-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.02);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .jio-modal-container {
+    max-height: 94vh;
+    border-radius: 16px;
+  }
+  .jio-song-sub {
+    display: none;
+  }
+  .jio-action-btn.play {
+    padding: 8px;
+  }
+}
