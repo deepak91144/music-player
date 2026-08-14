@@ -3,6 +3,12 @@ import { collection, query, where, onSnapshot, addDoc, doc, setDoc, deleteDoc } 
 import { db, auth, generateUserName } from './firebase';
 import './LiveChat.css';
 
+const RTC_CONFIG = {
+  iceServers: [
+    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }
+  ]
+};
+
 // Mini Voice Note Player (Only Play/Pause button + progress indicator)
 function VoiceNotePlayer({ audioUrl }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -77,6 +83,15 @@ export default function LiveChat({ roomId }) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
 
+  // WebRTC Live Call States: 'idle' | 'calling' | 'incoming' | 'connected'
+  const [callStatus, setCallStatus] = useState('idle');
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const [incomingCallData, setIncomingCallData] = useState(null);
+
+  const pcRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const remoteAudioRef = useRef(null);
+
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -84,6 +99,8 @@ export default function LiveChat({ roomId }) {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingTimerRef = useRef(null);
+
+  const myName = auth.currentUser ? generateUserName(auth.currentUser.uid) : "You";
 
   // Subscribe to room chat messages
   useEffect(() => {
@@ -141,6 +158,39 @@ export default function LiveChat({ roomId }) {
     return () => unsubscribe();
   }, [roomId]);
 
+  // WebRTC Signaling Listener for live calls in LiveChat
+  useEffect(() => {
+    if (!roomId || !auth.currentUser) return;
+
+    const callDocRef = doc(db, 'room_calls', roomId);
+
+    const unsubscribe = onSnapshot(callDocRef, (snapshot) => {
+      if (!snapshot.exists()) {
+        if (callStatus !== 'idle') {
+          cleanupCall();
+        }
+        return;
+      }
+
+      const data = snapshot.data();
+
+      // Incoming call offer from partner
+      if (data.offer && data.callerId !== auth.currentUser.uid && callStatus === 'idle') {
+        setIncomingCallData(data);
+        setCallStatus('incoming');
+      }
+
+      // Partner answered our offer
+      if (data.answer && pcRef.current && pcRef.current.signalingState !== 'stable') {
+        const rtcAnswer = new RTCSessionDescription(data.answer);
+        pcRef.current.setRemoteDescription(rtcAnswer).catch(err => console.warn('SetRemoteDescription error:', err));
+        setCallStatus('connected');
+      }
+    });
+
+    return () => unsubscribe();
+  }, [roomId, callStatus]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, typingUsers, isRecording]);
@@ -155,6 +205,170 @@ export default function LiveChat({ roomId }) {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
     return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  // Clean up WebRTC peer connection & media streams
+  const cleanupCall = () => {
+    if (pcRef.current) {
+      pcRef.current.close();
+      pcRef.current = null;
+    }
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+    }
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.srcObject = null;
+    }
+    setCallStatus('idle');
+    setIsMicMuted(false);
+    setIncomingCallData(null);
+  };
+
+  // Start WebRTC Live Call inside LiveChat
+  const startCall = async () => {
+    try {
+      setCallStatus('calling');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      localStreamRef.current = stream;
+
+      const pc = new RTCPeerConnection(RTC_CONFIG);
+      pcRef.current = pc;
+
+      // Add local audio track
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+      // Handle remote audio stream
+      pc.ontrack = (event) => {
+        if (remoteAudioRef.current && event.streams[0]) {
+          remoteAudioRef.current.srcObject = event.streams[0];
+          setCallStatus('connected');
+        }
+      };
+
+      const callDocRef = doc(db, 'room_calls', roomId);
+      const callerCandidatesCol = collection(db, 'room_calls', roomId, 'callerCandidates');
+      const calleeCandidatesCol = collection(db, 'room_calls', roomId, 'calleeCandidates');
+
+      // Send ICE candidates to Firestore
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          addDoc(callerCandidatesCol, event.candidate.toJSON()).catch(() => {});
+        }
+      };
+
+      // Listen for callee's ICE candidates
+      onSnapshot(calleeCandidatesCol, (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') {
+            const candidate = new RTCIceCandidate(change.doc.data());
+            pc.addIceCandidate(candidate).catch(() => {});
+          }
+        });
+      });
+
+      // Create Offer
+      const offerDescription = await pc.createOffer();
+      await pc.setLocalDescription(offerDescription);
+
+      const offer = {
+        sdp: offerDescription.sdp,
+        type: offerDescription.type
+      };
+
+      await setDoc(callDocRef, {
+        offer,
+        callerId: auth.currentUser.uid,
+        callerName: myName,
+        timestamp: Date.now()
+      });
+    } catch (err) {
+      console.error('Failed to start live voice call:', err);
+      alert('Microphone access is required for live voice call.');
+      cleanupCall();
+    }
+  };
+
+  // Answer WebRTC Live Call
+  const answerCall = async () => {
+    try {
+      if (!incomingCallData) return;
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      localStreamRef.current = stream;
+
+      const pc = new RTCPeerConnection(RTC_CONFIG);
+      pcRef.current = pc;
+
+      // Add local audio track
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+      // Handle remote audio stream
+      pc.ontrack = (event) => {
+        if (remoteAudioRef.current && event.streams[0]) {
+          remoteAudioRef.current.srcObject = event.streams[0];
+          setCallStatus('connected');
+        }
+      };
+
+      const callDocRef = doc(db, 'room_calls', roomId);
+      const callerCandidatesCol = collection(db, 'room_calls', roomId, 'callerCandidates');
+      const calleeCandidatesCol = collection(db, 'room_calls', roomId, 'calleeCandidates');
+
+      // Send callee ICE candidates to Firestore
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          addDoc(calleeCandidatesCol, event.candidate.toJSON()).catch(() => {});
+        }
+      };
+
+      // Listen for caller's ICE candidates
+      onSnapshot(callerCandidatesCol, (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') {
+            const candidate = new RTCIceCandidate(change.doc.data());
+            pc.addIceCandidate(candidate).catch(() => {});
+          }
+        });
+      });
+
+      // Set Remote Description from Caller Offer
+      await pc.setRemoteDescription(new RTCSessionDescription(incomingCallData.offer));
+
+      // Create Answer
+      const answerDescription = await pc.createAnswer();
+      await pc.setLocalDescription(answerDescription);
+
+      const answer = {
+        type: answerDescription.type,
+        sdp: answerDescription.sdp
+      };
+
+      await setDoc(callDocRef, { answer }, { merge: true });
+      setCallStatus('connected');
+    } catch (err) {
+      console.error('Failed to answer call:', err);
+      cleanupCall();
+    }
+  };
+
+  // End / Reject Call
+  const endCall = async () => {
+    if (roomId) {
+      deleteDoc(doc(db, 'room_calls', roomId)).catch(() => {});
+    }
+    cleanupCall();
+  };
+
+  // Toggle Mute Microphone
+  const toggleMuteMic = () => {
+    if (localStreamRef.current) {
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsMicMuted(!audioTrack.enabled);
+      }
+    }
   };
 
   // Clear current user's typing status from Firestore
@@ -334,6 +548,9 @@ export default function LiveChat({ roomId }) {
 
   return (
     <div className="live-chat-container">
+      {/* Hidden audio element for receiving remote peer voice call */}
+      <audio ref={remoteAudioRef} autoPlay />
+
       {/* Lightbox for full screen photo view */}
       {lightboxImage && (
         <div className="chat-lightbox" onClick={() => setLightboxImage(null)}>
@@ -344,8 +561,47 @@ export default function LiveChat({ roomId }) {
         </div>
       )}
 
+      {/* Live Chat Header with Live Call Action Button */}
       <div className="chat-header">
         <h3>Live Chat</h3>
+
+        <div className="chat-call-actions">
+          {callStatus === 'idle' && (
+            <button type="button" className="chat-call-btn" onClick={startCall} title="Start Live Voice Call">
+              📞 Live Call
+            </button>
+          )}
+
+          {callStatus === 'calling' && (
+            <button type="button" className="chat-call-btn calling" onClick={endCall} title="Cancel Calling">
+              <span className="pulse-call-dot"></span> Calling... (Cancel)
+            </button>
+          )}
+
+          {callStatus === 'incoming' && (
+            <div className="chat-incoming-call">
+              <span className="incoming-label">📞 Incoming Call</span>
+              <button type="button" className="chat-answer-btn" onClick={answerCall} title="Answer Call">
+                🟢 Answer
+              </button>
+              <button type="button" className="chat-decline-btn" onClick={endCall} title="Decline Call">
+                🔴 Decline
+              </button>
+            </div>
+          )}
+
+          {callStatus === 'connected' && (
+            <div className="chat-active-call">
+              <span className="active-dot"></span>
+              <button type="button" className={`chat-mute-btn ${isMicMuted ? 'muted' : ''}`} onClick={toggleMuteMic}>
+                {isMicMuted ? '🔇 Unmute' : '🎙️ Mute'}
+              </button>
+              <button type="button" className="chat-end-call-btn" onClick={endCall} title="End Call">
+                🔴 End
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="chat-messages">
