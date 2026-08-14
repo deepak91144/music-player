@@ -110,6 +110,21 @@ export default function ReactionOverlay({ setDjSession }) {
               }
               // Delete the invite so we don't trigger it again on reload
               deleteDoc(doc(db, 'invites', docSnap.id)).catch(()=>{});
+            } else if (data.status === 'declined' && data.timestamp >= oneMinuteAgo) {
+              // Sender receives notification that their request was rejected
+              const declineToast = {
+                id: docSnap.id,
+                emoji: '❌',
+                fromUserName: data.toUserName || 'User',
+                isDeclinedToast: true
+              };
+              setToasts(prev => [...prev, declineToast]);
+              setTimeout(() => {
+                setToasts(prev => prev.filter(t => t.id !== docSnap.id));
+              }, 4500);
+
+              // Delete the invite so it doesn't trigger again
+              deleteDoc(doc(db, 'invites', docSnap.id)).catch(()=>{});
             }
           });
         });
@@ -156,12 +171,16 @@ export default function ReactionOverlay({ setDjSession }) {
           </div>
         ))}
 
-        {/* Regular Reaction Toasts */}
+        {/* Regular Reaction Toasts & Rejection Toasts */}
         {toasts.map(toast => (
           <div key={`toast-${toast.id}`} className="reaction-toast">
             <span className="toast-emoji">{toast.emoji}</span>
             <span className="toast-text">
-              <strong>{toast.fromUserName}</strong> sent you a reaction!
+              {toast.isDeclinedToast ? (
+                <span><strong>{toast.fromUserName}</strong> declined your listen request.</span>
+              ) : (
+                <span><strong>{toast.fromUserName}</strong> sent you a reaction!</span>
+              )}
             </span>
           </div>
         ))}

@@ -7,6 +7,7 @@ export default function LiveFeed() {
   const [rawUsers, setRawUsers] = useState([]);
   const [activeUsers, setActiveUsers] = useState([]);
   const [isOpen, setIsOpen] = useState(true);
+  const [toastMessage, setToastMessage] = useState(null);
 
   useEffect(() => {
     const q = query(
@@ -28,14 +29,24 @@ export default function LiveFeed() {
     return () => unsubscribe();
   }, []);
 
-  // Filter stale users dynamically (must have updated timestamp within last 15 seconds)
+  // Filter stale users dynamically & sort them STABLY (prevents list from jumping around on heartbeats)
   useEffect(() => {
     const filterUsers = () => {
       const now = Date.now();
+      const currentUid = auth.currentUser?.uid;
+
       const freshUsers = rawUsers.filter(u => {
         const isFresh = u.timestamp && (now - u.timestamp < 15000);
         return isFresh && u.isPlaying !== false;
       });
+
+      // Stable sort: Current user first, then alphabetically by name
+      freshUsers.sort((a, b) => {
+        if (a.userId === currentUid) return -1;
+        if (b.userId === currentUid) return 1;
+        return (a.displayName || '').localeCompare(b.displayName || '');
+      });
+
       setActiveUsers(freshUsers);
     };
 
@@ -57,6 +68,8 @@ export default function LiveFeed() {
           status: 'pending',
           timestamp: Date.now()
         });
+        setToastMessage(`🎧 Request sent to ${targetUser.displayName}!`);
+        setTimeout(() => setToastMessage(null), 3000);
       } else {
         await addDoc(collection(db, 'reactions'), {
           fromUserId: auth.currentUser.uid,
@@ -65,6 +78,8 @@ export default function LiveFeed() {
           emoji: emoji,
           timestamp: Date.now()
         });
+        setToastMessage(`Sent ${emoji} to ${targetUser.displayName}`);
+        setTimeout(() => setToastMessage(null), 2500);
       }
     } catch (err) {
       console.error("Failed to send reaction", err);
@@ -74,7 +89,14 @@ export default function LiveFeed() {
   if (activeUsers.length === 0) return null;
 
   return (
-    <div className={`live-feed ${isOpen ? 'open' : 'closed'}`}>
+    <>
+      {toastMessage && (
+        <div className="request-sent-toast">
+          {toastMessage}
+        </div>
+      )}
+
+      <div className={`live-feed ${isOpen ? 'open' : 'closed'}`}>
       <div className="live-feed-header" onClick={() => setIsOpen(!isOpen)}>
         <span className="live-indicator"></span>
         <h3>Active Listeners</h3>
@@ -107,6 +129,7 @@ export default function LiveFeed() {
           </div>
         ))}
       </div>
-    </div>
+      </div>
+    </>
   );
 }
