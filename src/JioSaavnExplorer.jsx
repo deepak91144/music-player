@@ -92,7 +92,8 @@ export default function JioSaavnExplorer({ isOpen, onClose, onPlayTrack, onAddTo
           </button>
         </div>
 
-        {/* Search Bar Wrapper */}
+        {/* Search Bar Wrapper (Commented Out) */}
+        {/* 
         <div className="jio-search-box">
           <svg className="jio-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <circle cx="11" cy="11" r="8"></circle>
@@ -112,7 +113,6 @@ export default function JioSaavnExplorer({ isOpen, onClose, onPlayTrack, onAddTo
             </button>
           )}
 
-          {/* Live Autocomplete Suggestions dropdown nested cleanly inside search wrapper */}
           {autocompleteResults && (
             <div className="jio-autocomplete-dropdown">
               {autocompleteResults.topquery?.data?.length > 0 && (
@@ -146,6 +146,7 @@ export default function JioSaavnExplorer({ isOpen, onClose, onPlayTrack, onAddTo
             </div>
           )}
         </div>
+        */}
 
         {/* Category Pills */}
         <div className="jio-categories-scroll">

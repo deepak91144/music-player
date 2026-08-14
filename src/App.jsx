@@ -5,7 +5,7 @@ import ReactionOverlay from './ReactionOverlay';
 import RoomPage from './RoomPage';
 import JioSaavnExplorer from './JioSaavnExplorer';
 import JioSaavnLyrics from './JioSaavnLyrics';
-import { searchSongs } from './jiosaavnService';
+import { searchSongs, LOCAL_TRACKS } from './jiosaavnService';
 import './App.css';
 
 // Import background image
@@ -40,34 +40,11 @@ export default function App() {
     return arr;
   };
 
-  // Fetch initial tracks from multiple diverse API categories on mount
+  // Initialize tracks with local audio files on mount
   useEffect(() => {
-    let isMounted = true;
-    const queries = ['KK Romantic Songs', 'KK Best Love Songs', 'KK Hits Hindi Romance', 'KK Romantic Duets', 'KK Soulful Love Songs'];
-    
-    Promise.all(queries.map(q => searchSongs(q, 1, 15).catch(() => [])))
-      .then(resultsArray => {
-        if (!isMounted) return;
-        const allSongs = resultsArray.flat();
-        
-        // Deduplicate songs by clean title
-        const uniqueMap = new Map();
-        allSongs.forEach(song => {
-          if (song && song.title && !uniqueMap.has(song.title.toLowerCase())) {
-            uniqueMap.set(song.title.toLowerCase(), song);
-          }
-        });
-
-        const uniqueSongs = shuffleArray(Array.from(uniqueMap.values()));
-        if (uniqueSongs.length > 0) {
-          setTracks(uniqueSongs);
-        }
-      })
-      .catch(err => {
-        console.error('Failed to load initial API songs:', err);
-      });
-
-    return () => { isMounted = false; };
+    // Start with local audio tracks (KK and Hindi hits)
+    const shuffled = shuffleArray(LOCAL_TRACKS);
+    setTracks(shuffled);
   }, []);
 
   useEffect(() => {
@@ -179,7 +156,8 @@ export default function App() {
             </p>
           </div>
 
-          {/* Transparent Action Controls (Positioned directly above cassette player) */}
+          {/* Search field commented out */}
+          {/* 
           <div className="player-top-actions">
             <button 
               className="floating-search-btn"
@@ -192,22 +170,8 @@ export default function App() {
               </svg>
               <span>Search Songs</span>
             </button>
-
-            {currentTrack.hasLyrics && (
-              <button
-                className="floating-lyrics-btn"
-                onClick={() => setIsLyricsOpen(true)}
-                title="View Song Lyrics"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                  <line x1="12" y1="19" x2="12" y2="22"></line>
-                </svg>
-                <span>Lyrics</span>
-              </button>
-            )}
           </div>
+          */}
 
           {renderPlayer()}
         </div>
