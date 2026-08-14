@@ -4,101 +4,141 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: #0d0d12; /* One single solid background color */
   z-index: 100;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   color: #ffffff;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  transition: background 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Header - Completely flat with only Leave Session button */
+/* ==================== */
+/*  BACKGROUND THEMES   */
+/* ==================== */
+
+/* 1: ROMANTIC THEME - Crimson Rose Passion */
+.room-page-container.theme-romantic {
+  background: linear-gradient(135deg, #1f030f 0%, #4a0e26 50%, #17020a 100%);
+}
+
+.room-page-container.theme-romantic .theme-ambient-glow {
+  background: radial-gradient(circle at 35% 25%, rgba(244, 114, 182, 0.3), transparent 60%),
+              radial-gradient(circle at 75% 75%, rgba(225, 29, 72, 0.25), transparent 50%);
+}
+
+/* 2: COZY THEME - Warm Candlelit Fireplace */
+.room-page-container.theme-cozy {
+  background: linear-gradient(135deg, #1f1208 0%, #48240a 50%, #1a0e05 100%);
+}
+
+.room-page-container.theme-cozy .theme-ambient-glow {
+  background: radial-gradient(circle at 65% 30%, rgba(245, 158, 11, 0.35), transparent 60%),
+              radial-gradient(circle at 25% 70%, rgba(217, 119, 6, 0.25), transparent 50%);
+}
+
+/* 3: LAZY THEME - Lo-Fi Violet Twilight */
+.room-page-container.theme-lazy {
+  background: linear-gradient(135deg, #100a21 0%, #2e1a52 50%, #110926 100%);
+}
+
+.room-page-container.theme-lazy .theme-ambient-glow {
+  background: radial-gradient(circle at 40% 40%, rgba(168, 85, 247, 0.3), transparent 60%),
+              radial-gradient(circle at 80% 80%, rgba(147, 51, 234, 0.25), transparent 50%);
+}
+
+/* 4: SLEEPY THEME - Starry Night Midnight Moon */
+.room-page-container.theme-sleepy {
+  background: linear-gradient(135deg, #020617 0%, #0b192e 50%, #01040d 100%);
+}
+
+.room-page-container.theme-sleepy .theme-ambient-glow {
+  background: radial-gradient(circle at 70% 20%, rgba(56, 189, 248, 0.25), transparent 60%),
+              radial-gradient(circle at 30% 80%, rgba(30, 58, 138, 0.3), transparent 50%);
+}
+
+/* Ambient glow & animation */
+.theme-ambient-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  transition: all 0.8s ease;
+  animation: ambientFloat 12s infinite alternate ease-in-out;
+}
+
+@keyframes ambientFloat {
+  0% { transform: scale(1) translate(0, 0); }
+  50% { transform: scale(1.05) translate(-10px, 10px); }
+  100% { transform: scale(0.98) translate(10px, -5px); }
+}
+
+/* Header - Flat with Theme Selector on Left, Leave Session on Right */
 .room-header {
   position: relative;
   z-index: 10;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   padding: 16px 28px;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: none;
   box-shadow: none;
 }
 
-.room-title-block {
+.theme-selector-container {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
 }
 
-.live-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  border: none;
-  padding: 5px 12px;
-  border-radius: 20px;
-}
-
-.pulse-dot {
-  width: 8px;
-  height: 8px;
-  background-color: #32d74b;
-  border-radius: 50%;
-}
-
-.live-text {
-  font-size: 11px;
+.theme-label {
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 1.5px;
-  color: #32d74b;
   text-transform: uppercase;
-}
-
-.room-heading {
-  margin: 0;
-  font-weight: 600;
-  font-size: 20px;
-  color: #ffffff;
-}
-
-.room-status-block {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.role-badge {
-  padding: 5px 14px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 700;
   letter-spacing: 1px;
-  text-transform: uppercase;
-  border: none;
+  color: rgba(255, 255, 255, 0.6);
 }
 
-.role-badge.master {
-  background: rgba(50, 215, 75, 0.15);
-  color: #32d74b;
+.theme-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.role-badge.listener {
-  background: rgba(10, 132, 255, 0.15);
-  color: #0a84ff;
+.theme-pill-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
 }
 
-.partner-info {
-  font-size: 14px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
+.theme-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.theme-pill-btn.active {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
 
 .leave-room-btn {
   background: rgba(255, 255, 255, 0.08);
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   color: rgba(255, 255, 255, 0.9);
   padding: 8px 18px;
   border-radius: 20px;
@@ -109,7 +149,8 @@
 }
 
 .leave-room-btn:hover {
-  background: rgba(255, 59, 48, 0.2);
+  background: rgba(255, 59, 48, 0.25);
+  border-color: rgba(255, 59, 48, 0.4);
   color: #ff3b30;
 }
 
@@ -144,10 +185,13 @@
   justify-content: center;
   gap: 24px;
   padding: 14px 24px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-radius: 24px;
   width: 100%;
   max-width: 480px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .duo-character {
@@ -290,7 +334,7 @@
   100% { height: 16px; opacity: 1; }
 }
 
-/* Ensure player wrapper is relative in Room view (override position: fixed) */
+/* Ensure player wrapper is relative in Room view */
 .room-player-section .modern-player-wrapper {
   position: relative !important;
   bottom: auto !important;
@@ -322,29 +366,13 @@
   .room-header {
     padding: 12px 16px;
     display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .theme-selector-container {
+    overflow-x: auto;
     width: 100%;
-    flex-shrink: 0;
-  }
-  .room-title-block {
-    display: none;
-  }
-  .room-status-block {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .role-badge {
-    display: none;
-  }
-  .partner-info {
-    display: block;
-    font-size: 14px;
-    font-weight: 600;
-    color: #ffffff;
   }
   .room-content {
     flex-direction: column-reverse;

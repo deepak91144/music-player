@@ -1,7 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import LiveChat from './LiveChat';
-import { auth, generateUserName } from './firebase';
+import { db, auth, generateUserName } from './firebase';
 import './RoomPage.css';
+
+const THEMES = [
+  { id: 'romantic', name: '💖 Romantic', icon: '💖' },
+  { id: 'cozy', name: '☕ Cozy', icon: '☕' },
+  { id: 'lazy', name: '🛋️ Lazy', icon: '🛋️' },
+  { id: 'sleepy', name: '🌙 Sleepy', icon: '🌙' },
+];
 
 const ListeningDuo = ({ djName, listenerName }) => {
   return (
@@ -46,16 +54,72 @@ const ListeningDuo = ({ djName, listenerName }) => {
 };
 
 export default function RoomPage({ djSession, setDjSession, children }) {
+  const [currentTheme, setCurrentTheme] = useState(() => {
+    return localStorage.getItem('room_bg_theme') || 'romantic';
+  });
+
   const myName = auth.currentUser ? generateUserName(auth.currentUser.uid) : "You";
   const partnerName = djSession.partnerName || "Partner";
 
   const djName = djSession.isMaster ? `${myName} (You)` : partnerName;
   const listenerName = djSession.isMaster ? partnerName : `${myName} (You)`;
 
+  // Real-time synchronization of background theme across users in room
+  useEffect(() => {
+    if (!djSession?.roomId) return;
+
+    const themeDocRef = doc(db, 'room_themes', djSession.roomId);
+    
+    const unsubscribe = onSnapshot(themeDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.theme) {
+          setCurrentTheme(data.theme);
+          localStorage.setItem('room_bg_theme', data.theme);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [djSession?.roomId]);
+
+  const handleThemeChange = (themeId) => {
+    setCurrentTheme(themeId);
+    localStorage.setItem('room_bg_theme', themeId);
+
+    if (djSession?.roomId) {
+      setDoc(doc(db, 'room_themes', djSession.roomId), {
+        theme: themeId,
+        updatedBy: auth.currentUser?.uid || 'user',
+        timestamp: Date.now()
+      }, { merge: true }).catch(err => console.warn("Theme sync error:", err));
+    }
+  };
+
   return (
-    <div className="room-page-container">
-      {/* Header - Only Leave Session button */}
+    <div className={`room-page-container theme-${currentTheme}`}>
+      {/* Ambient background glow layers */}
+      <div className="theme-ambient-glow"></div>
+      <div className="theme-ambient-particles"></div>
+
+      {/* Header - Theme Selector on Left, Leave Session on Right */}
       <div className="room-header">
+        <div className="theme-selector-container">
+          <span className="theme-label">Theme:</span>
+          <div className="theme-pills">
+            {THEMES.map((theme) => (
+              <button
+                key={theme.id}
+                className={`theme-pill-btn ${currentTheme === theme.id ? 'active' : ''}`}
+                onClick={() => handleThemeChange(theme.id)}
+                title={`Switch to ${theme.name} background theme`}
+              >
+                {theme.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <button className="leave-room-btn" onClick={() => setDjSession(null)}>
           Leave Session
         </button>
