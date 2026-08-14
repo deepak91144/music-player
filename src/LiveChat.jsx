@@ -7,13 +7,23 @@ export default function LiveChat({ roomId }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedAudio, setSelectedAudio] = useState(null);
+  const [audioFileName, setAudioFileName] = useState('');
   const [isCompressing, setIsCompressing] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
   const [typingUsers, setTypingUsers] = useState([]);
 
+  // Voice note recording states
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
 
   // Subscribe to room chat messages
   useEffect(() => {
@@ -73,12 +83,18 @@ export default function LiveChat({ roomId }) {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, typingUsers]);
+  }, [messages, typingUsers, isRecording]);
 
   const formatTime = (ts) => {
     if (!ts) return '';
     const date = new Date(ts);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatDuration = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
   // Clear current user's typing status from Firestore
@@ -113,6 +129,63 @@ export default function LiveChat({ roomId }) {
       }, 2500);
     } else {
       stopTyping();
+    }
+  };
+
+  // Start Voice Note Recording with live mic
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setSelectedAudio(reader.result);
+          setAudioFileName(`Voice note (${formatDuration(recordingTime)})`);
+        };
+        reader.readAsDataURL(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Microphone error:', err);
+      alert('Microphone access is required to record voice notes');
+    }
+  };
+
+  // Stop Voice Note Recording
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    }
+  };
+
+  // Cancel Voice Note Recording
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.onstop = null;
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     }
   };
 
@@ -169,14 +242,18 @@ export default function LiveChat({ roomId }) {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if ((!newMessage.trim() && !selectedImage) || !auth.currentUser || isCompressing) return;
+    if ((!newMessage.trim() && !selectedImage && !selectedAudio) || !auth.currentUser || isCompressing) return;
 
     const textToSend = newMessage.trim();
     const imageToSend = selectedImage;
+    const audioToSend = selectedAudio;
 
     // Reset input fields & stop typing indicator immediately
     setNewMessage('');
     setSelectedImage(null);
+    setSelectedAudio(null);
+    setAudioFileName('');
+
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     stopTyping();
 
@@ -187,6 +264,7 @@ export default function LiveChat({ roomId }) {
         senderName: generateUserName(auth.currentUser.uid),
         text: textToSend,
         image: imageToSend || null,
+        audio: audioToSend || null,
         timestamp: Date.now()
       });
     } catch (err) {
@@ -225,6 +303,12 @@ export default function LiveChat({ roomId }) {
                     <img src={msg.image} alt="Chat photo" className="chat-photo-img" />
                   </div>
                 )}
+                {msg.audio && (
+                  <div className="chat-audio-wrapper">
+                    <div className="chat-audio-label">🎙️ Voice Note</div>
+                    <audio controls src={msg.audio} className="chat-audio-element" />
+                  </div>
+                )}
                 {msg.text && <div className="chat-text">{msg.text}</div>}
               </div>
             </div>
@@ -254,52 +338,97 @@ export default function LiveChat({ roomId }) {
 
       {/* Selected photo attachment preview before sending */}
       {selectedImage && (
-        <div className="chat-image-preview">
-          <img src={selectedImage} alt="Preview" />
+        <div className="chat-attachment-preview">
+          <img src={selectedImage} alt="Preview" className="preview-thumb" />
+          <span>Photo attached</span>
           <button className="remove-preview-btn" onClick={() => setSelectedImage(null)} title="Remove photo">
             &times;
           </button>
         </div>
       )}
 
-      <form className="chat-input-form" onSubmit={handleSend}>
-        {/* Hidden File Input for photos */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          accept="image/*"
-          onChange={handleImageSelect}
-          style={{ display: 'none' }}
-        />
+      {/* Selected voice note attachment preview before sending */}
+      {selectedAudio && (
+        <div className="chat-attachment-preview audio-preview">
+          <span className="preview-icon">🎙️</span>
+          <span className="preview-filename">{audioFileName || 'Voice note ready'}</span>
+          <button className="remove-preview-btn" onClick={() => { setSelectedAudio(null); setAudioFileName(''); }} title="Remove voice note">
+            &times;
+          </button>
+        </div>
+      )}
 
-        {/* Photo Upload Button */}
-        <button
-          type="button"
-          className="chat-photo-btn"
-          onClick={() => fileInputRef.current?.click()}
-          title="Send Photo"
-          disabled={isCompressing}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="18" height="18" rx="4" ry="4"></rect>
-            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-            <polyline points="21 15 16 10 5 21"></polyline>
-          </svg>
-        </button>
+      {/* Active Recording Bar Overlay */}
+      {isRecording ? (
+        <div className="chat-recording-bar">
+          <div className="recording-indicator">
+            <span className="recording-rec-dot"></span>
+            <span>Recording voice note... <strong>{formatDuration(recordingTime)}</strong></span>
+          </div>
+          <div className="recording-actions">
+            <button type="button" className="rec-cancel-btn" onClick={cancelRecording} title="Cancel Recording">
+              Cancel
+            </button>
+            <button type="button" className="rec-stop-btn" onClick={stopRecording} title="Done Recording">
+              ✓ Done
+            </button>
+          </div>
+        </div>
+      ) : (
+        <form className="chat-input-form" onSubmit={handleSend}>
+          {/* Hidden File Input for Photos */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept="image/*"
+            onChange={handleImageSelect}
+            style={{ display: 'none' }}
+          />
 
-        <input
-          type="text"
-          value={newMessage}
-          onChange={handleInputChange}
-          placeholder={isCompressing ? 'Processing photo...' : 'Say something or send a photo...'}
-          className="chat-input"
-          disabled={isCompressing}
-        />
+          {/* Photo Upload Button */}
+          <button
+            type="button"
+            className="chat-action-icon-btn"
+            onClick={() => fileInputRef.current?.click()}
+            title="Send Photo"
+            disabled={isCompressing}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="18" height="18" rx="4" ry="4"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+          </button>
 
-        <button type="submit" className="chat-send-btn" disabled={isCompressing || (!newMessage.trim() && !selectedImage)}>
-          Send
-        </button>
-      </form>
+          {/* Live Mic Voice Note Record Button Only */}
+          <button
+            type="button"
+            className="chat-action-icon-btn mic-btn"
+            onClick={startRecording}
+            title="Record Voice Note"
+            disabled={isCompressing}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="22"></line>
+            </svg>
+          </button>
+
+          <input
+            type="text"
+            value={newMessage}
+            onChange={handleInputChange}
+            placeholder={isCompressing ? 'Processing photo...' : 'Say something, record voice note, or photo...'}
+            className="chat-input"
+            disabled={isCompressing}
+          />
+
+          <button type="submit" className="chat-send-btn" disabled={isCompressing || (!newMessage.trim() && !selectedImage && !selectedAudio)}>
+            Send
+          </button>
+        </form>
+      )}
     </div>
   );
 }
