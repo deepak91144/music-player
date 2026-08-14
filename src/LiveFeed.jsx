@@ -4,6 +4,7 @@ import { db, auth, generateUserName } from './firebase';
 import './LiveFeed.css';
 
 export default function LiveFeed() {
+  const [rawUsers, setRawUsers] = useState([]);
   const [activeUsers, setActiveUsers] = useState([]);
   const [isOpen, setIsOpen] = useState(true);
 
@@ -19,13 +20,29 @@ export default function LiveFeed() {
       snapshot.forEach((doc) => {
         users.push(doc.data());
       });
-      setActiveUsers(users);
+      setRawUsers(users);
     }, (error) => {
       console.warn("LiveFeed error:", error);
     });
 
     return () => unsubscribe();
   }, []);
+
+  // Filter stale users dynamically (must have updated timestamp within last 15 seconds)
+  useEffect(() => {
+    const filterUsers = () => {
+      const now = Date.now();
+      const freshUsers = rawUsers.filter(u => {
+        const isFresh = u.timestamp && (now - u.timestamp < 15000);
+        return isFresh && u.isPlaying !== false;
+      });
+      setActiveUsers(freshUsers);
+    };
+
+    filterUsers();
+    const interval = setInterval(filterUsers, 2000);
+    return () => clearInterval(interval);
+  }, [rawUsers]);
 
   const sendReaction = async (targetUser, emoji) => {
     if (!auth.currentUser) return;
@@ -77,8 +94,7 @@ export default function LiveFeed() {
               <div className="reaction-menu">
                 <button onClick={() => sendReaction(user, '🔥')}>🔥</button>
                 <button onClick={() => sendReaction(user, '❤️')}>❤️</button>
-                <button onClick={() => sendReaction(user, '🎵')}>🎵</button>
-                <button onClick={() => sendReaction(user, '👏')}>👏</button>
+
                 <button onClick={() => sendReaction(user, '🎧')} title="Listen Together">🎧</button>
               </div>
             )}

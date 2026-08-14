@@ -23,6 +23,16 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     signInAnonymousUser().then(u => setUser(u));
   }, []);
 
+  // Delete now_playing record on tab close / unload
+  useEffect(() => {
+    if (!user) return;
+    const handleUnload = () => {
+      deleteDoc(doc(db, 'now_playing', user.uid)).catch(() => {});
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, [user]);
+
   // Sync playing state to Firestore (Only if NOT in DJ mode or if DJ Master)
   useEffect(() => {
     if (!user || (djSession && !djSession.isMaster)) return;
@@ -71,7 +81,12 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
         // Match Track
         const trackIndex = tracks.findIndex(t => t.title === data.songTitle);
         if (trackIndex !== -1 && trackIndex !== currentTrackIndex) {
+           if (audioRef.current) {
+             audioRef.current.pause();
+             try { audioRef.current.currentTime = 0; } catch (_) {}
+           }
            setCurrentTrackIndex(trackIndex);
+           return; // Return early to let track switch effect load the new song cleanly
         }
         
         const audio = audioRef.current;
@@ -119,11 +134,13 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     const audio = audioRef.current;
     if (!audio) return;
 
-    // Pause current playback before switching
+    // Immediately pause current playback and zero out old position to prevent ghost audio
     audio.pause();
+    try { audio.currentTime = 0; } catch (_) {}
     
     audio.src = currentTrack.src;
     audio.load();
+    try { audio.currentTime = 0; } catch (_) {}
 
     setCurrentTime(0);
     setDuration(0);
@@ -198,8 +215,11 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
   };
 
   const handlePrev = useCallback(() => {
-    if (audioRef.current && audioRef.current.currentTime > 3) {
-      audioRef.current.currentTime = 0;
+    if (audioRef.current) {
+      audioRef.current.pause();
+      try { audioRef.current.currentTime = 0; } catch (_) {}
+    }
+    if (currentTime > 3) {
       setCurrentTime(0);
       // Force sync to firebase on this internal seek
       if (user && isPlaying && (!djSession || djSession.isMaster)) {
@@ -215,14 +235,16 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
         }, { merge: true }).catch(()=>{});
       }
     } else {
-      if (audioRef.current) audioRef.current.currentTime = 0; // Prevent ghost timestamp
       const prevIndex = currentTrackIndex > 0 ? currentTrackIndex - 1 : tracks.length - 1;
       setCurrentTrackIndex(prevIndex);
     }
-  }, [currentTrackIndex, tracks.length, setCurrentTrackIndex, user, isPlaying, djSession, currentTrack]);
+  }, [currentTrackIndex, tracks.length, setCurrentTrackIndex, user, isPlaying, djSession, currentTrack, currentTime]);
 
   const handleNext = useCallback(() => {
-    if (audioRef.current) audioRef.current.currentTime = 0; // Prevent ghost timestamp
+    if (audioRef.current) {
+      audioRef.current.pause();
+      try { audioRef.current.currentTime = 0; } catch (_) {}
+    }
     const nextIndex = (currentTrackIndex + 1) % tracks.length;
     setCurrentTrackIndex(nextIndex);
   }, [currentTrackIndex, tracks.length, setCurrentTrackIndex]);
