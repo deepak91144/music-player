@@ -136,26 +136,66 @@
   border-radius: 12px;
 }
 
-/* Audio Voice Note Bubble Styles */
-.chat-audio-wrapper {
-  margin-bottom: 6px;
+/* Custom Voice Note Player (Only Play/Pause Button, No Controls) */
+.voice-note-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+  width: 180px;
+  margin-bottom: 4px;
+}
+
+.voice-play-pause-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #000000;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.voice-play-pause-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+}
+
+.voice-note-meta {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  width: 220px;
 }
 
-.chat-audio-label {
-  font-size: 11px;
-  font-weight: 600;
+.voice-label {
+  font-size: 10px;
+  font-weight: 700;
   color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.3px;
 }
 
-.chat-audio-element {
+.voice-progress-bar {
+  height: 4px;
   width: 100%;
-  height: 36px;
-  border-radius: 20px;
-  outline: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.voice-progress-fill {
+  height: 100%;
+  background: #ffffff;
+  border-radius: 4px;
+  transition: width 0.1s linear;
 }
 
 /* Selected Attachment Previews */

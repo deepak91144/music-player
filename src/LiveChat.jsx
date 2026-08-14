@@ -3,6 +3,66 @@ import { collection, query, where, onSnapshot, addDoc, doc, setDoc, deleteDoc } 
 import { db, auth, generateUserName } from './firebase';
 import './LiveChat.css';
 
+// Mini Voice Note Player (Only Play/Pause button + progress indicator)
+function VoiceNotePlayer({ audioUrl }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const audioRef = useRef(null);
+
+  const togglePlay = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    } else {
+      audio.play().then(() => setIsPlaying(true)).catch(err => console.error(err));
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    const audio = audioRef.current;
+    if (audio && audio.duration) {
+      setProgress((audio.currentTime / audio.duration) * 100);
+    }
+  };
+
+  const handleEnded = () => {
+    setIsPlaying(false);
+    setProgress(0);
+  };
+
+  return (
+    <div className="voice-note-player">
+      <audio
+        ref={audioRef}
+        src={audioUrl}
+        onTimeUpdate={handleTimeUpdate}
+        onEnded={handleEnded}
+        onPause={() => setIsPlaying(false)}
+      />
+      <button type="button" className="voice-play-pause-btn" onClick={togglePlay} title={isPlaying ? 'Pause' : 'Play'}>
+        {isPlaying ? (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        )}
+      </button>
+      <div className="voice-note-meta">
+        <span className="voice-label">🎙️ Voice Note</span>
+        <div className="voice-progress-bar">
+          <div className="voice-progress-fill" style={{ width: `${progress}%` }}></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LiveChat({ roomId }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -304,10 +364,7 @@ export default function LiveChat({ roomId }) {
                   </div>
                 )}
                 {msg.audio && (
-                  <div className="chat-audio-wrapper">
-                    <div className="chat-audio-label">🎙️ Voice Note</div>
-                    <audio controls src={msg.audio} className="chat-audio-element" />
-                  </div>
+                  <VoiceNotePlayer audioUrl={msg.audio} />
                 )}
                 {msg.text && <div className="chat-text">{msg.text}</div>}
               </div>
