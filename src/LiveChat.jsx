@@ -88,6 +88,9 @@ export default function LiveChat({ roomId }) {
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [incomingCallData, setIncomingCallData] = useState(null);
 
+  const callStatusRef = useRef('idle');
+  callStatusRef.current = callStatus;
+
   const pcRef = useRef(null);
   const localStreamRef = useRef(null);
   const remoteAudioRef = useRef(null);
@@ -158,24 +161,25 @@ export default function LiveChat({ roomId }) {
     return () => unsubscribe();
   }, [roomId]);
 
-  // WebRTC Signaling Listener for live calls in LiveChat
+  // WebRTC Signaling Listener - Always active when roomId is available
   useEffect(() => {
-    if (!roomId || !auth.currentUser) return;
+    if (!roomId) return;
 
     const callDocRef = doc(db, 'room_calls', roomId);
 
     const unsubscribe = onSnapshot(callDocRef, (snapshot) => {
       if (!snapshot.exists()) {
-        if (callStatus !== 'idle') {
+        if (callStatusRef.current !== 'idle') {
           cleanupCall();
         }
         return;
       }
 
       const data = snapshot.data();
+      const currentUserId = auth.currentUser?.uid;
 
       // Incoming call offer from partner
-      if (data.offer && data.callerId !== auth.currentUser.uid && callStatus === 'idle') {
+      if (data.offer && data.callerId !== currentUserId && callStatusRef.current === 'idle') {
         setIncomingCallData(data);
         setCallStatus('incoming');
       }
@@ -189,11 +193,11 @@ export default function LiveChat({ roomId }) {
     });
 
     return () => unsubscribe();
-  }, [roomId, callStatus]);
+  }, [roomId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, typingUsers, isRecording]);
+  }, [messages, typingUsers, isRecording, callStatus]);
 
   const formatTime = (ts) => {
     if (!ts) return '';
@@ -276,12 +280,25 @@ export default function LiveChat({ roomId }) {
         type: offerDescription.type
       };
 
+      const currentUid = auth.currentUser ? auth.currentUser.uid : `user_${Date.now()}`;
+
       await setDoc(callDocRef, {
         offer,
-        callerId: auth.currentUser.uid,
+        callerId: currentUid,
         callerName: myName,
         timestamp: Date.now()
       });
+
+      // Post notification message in live chat
+      addDoc(collection(db, 'chats'), {
+        roomId,
+        senderId: currentUid,
+        senderName: myName,
+        text: '📞 Started a live voice call!',
+        isCallNotice: true,
+        timestamp: Date.now()
+      }).catch(() => {});
+
     } catch (err) {
       console.error('Failed to start live voice call:', err);
       alert('Microphone access is required for live voice call.');
@@ -292,8 +309,6 @@ export default function LiveChat({ roomId }) {
   // Answer WebRTC Live Call
   const answerCall = async () => {
     try {
-      if (!incomingCallData) return;
-
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localStreamRef.current = stream;
 
@@ -332,8 +347,10 @@ export default function LiveChat({ roomId }) {
         });
       });
 
-      // Set Remote Description from Caller Offer
-      await pc.setRemoteDescription(new RTCSessionDescription(incomingCallData.offer));
+      // Fetch latest call doc if incomingCallData is missing
+      if (incomingCallData?.offer) {
+        await pc.setRemoteDescription(new RTCSessionDescription(incomingCallData.offer));
+      }
 
       // Create Answer
       const answerDescription = await pc.createAnswer();
@@ -622,7 +639,19 @@ export default function LiveChat({ roomId }) {
                 {msg.audio && (
                   <VoiceNotePlayer audioUrl={msg.audio} />
                 )}
-                {msg.text && <div className="chat-text">{msg.text}</div>}
+                {msg.isCallNotice ? (
+                  <div className="chat-call-notice-card">
+                    <span className="notice-icon">📞</span>
+                    <span className="notice-title">{msg.text}</span>
+                    {!isMe && callStatus === 'idle' && (
+                      <button type="button" className="notice-join-btn" onClick={answerCall}>
+                        📞 Join Voice Call
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  msg.text && <div className="chat-text">{msg.text}</div>
+                )}
               </div>
             </div>
           );
