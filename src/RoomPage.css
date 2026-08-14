@@ -13,15 +13,15 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Header - Completely flat, zero borders */
+/* Header - Completely flat with only Leave Session button */
 .room-header {
   position: relative;
   z-index: 10;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  padding: 20px 40px;
-  background: rgba(255, 255, 255, 0.02);
+  padding: 16px 28px;
+  background: transparent;
   border: none;
   box-shadow: none;
 }

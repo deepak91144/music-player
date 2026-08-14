@@ -46,36 +46,19 @@ const ListeningDuo = ({ djName, listenerName }) => {
 };
 
 export default function RoomPage({ djSession, setDjSession, children }) {
-  const roleText = djSession.isMaster ? "MASTER DJ" : "LISTENER";
   const myName = auth.currentUser ? generateUserName(auth.currentUser.uid) : "You";
   const partnerName = djSession.partnerName || "Partner";
 
   const djName = djSession.isMaster ? `${myName} (You)` : partnerName;
   const listenerName = djSession.isMaster ? partnerName : `${myName} (You)`;
 
-  const partnerText = djSession.isMaster 
-    ? `Broadcasting to ${partnerName}` 
-    : `Listening live with ${partnerName}`;
-
   return (
     <div className="room-page-container">
-      {/* Header */}
+      {/* Header - Only Leave Session button */}
       <div className="room-header">
-        <div className="room-title-block">
-          <div className="live-status-pill">
-            <span className="pulse-dot" />
-            <span className="live-text">SYNCED SESSION</span>
-          </div>
-          <h2 className="room-heading">Private Studio</h2>
-        </div>
-
-        <div className="room-status-block">
-          <span className={`role-badge ${djSession.isMaster ? 'master' : 'listener'}`}>{roleText}</span>
-          <span className="partner-info">{partnerText}</span>
-          <button className="leave-room-btn" onClick={() => setDjSession(null)}>
-            Leave Session
-          </button>
-        </div>
+        <button className="leave-room-btn" onClick={() => setDjSession(null)}>
+          Leave Session
+        </button>
       </div>
 
       <div className="room-content">
