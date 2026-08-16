@@ -1,6 +1,6 @@
 /**
  * Pure YouTube Music Service
- * 100% Free, 100% CORS-unrestricted on Render.com & all platforms
+ * 100% Free, 100% Full-Length 3 to 6 Minute Songs
  */
 
 export const LOCAL_TRACKS = [
@@ -24,7 +24,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/Dil Ibaadat Tum Mile 320 Kbps.mp3',
-    ytId: 'Ufx8G0fqwY2',
+    ytId: 'bCgBLKPE35Y',
     year: '2009',
     duration: 329
   },
@@ -36,7 +36,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/Labon Ko Bhool Bhulaiyaa 320 Kbps.mp3',
-    ytId: 'oFk1t_6m4s4',
+    ytId: '-FP2Cmc7zj4',
     year: '2007',
     duration: 345
   },
@@ -48,7 +48,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/Beete Lamhein The Train 320 Kbps.mp3',
-    ytId: '7Xq0d0yO84c',
+    ytId: 'UlacMvx_VYk',
     year: '2007',
     duration: 312
   },
@@ -60,7 +60,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/Haan Tu Hain Jannat 320 Kbps.mp3',
-    ytId: 'b7V-8bC4m5U',
+    ytId: 'V1fbOsHBlZE',
     year: '2008',
     duration: 325
   },
@@ -72,7 +72,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/Khuda Jaane Bachna Ae Haseeno 320 Kbps.mp3',
-    ytId: 'a71e3F_o-Zk',
+    ytId: 'cmMiyZaSELo',
     year: '2008',
     duration: 333
   },
@@ -84,7 +84,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/Aankhon Mein Teri Om Shanti Om 320 Kbps.mp3',
-    ytId: '2Vv-BfVoq4g',
+    ytId: '7KKVb0_IdD4',
     year: '2007',
     duration: 278
   },
@@ -96,7 +96,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/Tu Hi Meri Shab Hai Gangster 320 Kbps.mp3',
-    ytId: 'QhQW2b0oX2A',
+    ytId: '4vI3mOS9gIo',
     year: '2006',
     duration: 388
   },
@@ -108,7 +108,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/Kya Mujhe Pyar Hai Woh Lamhe 320 Kbps.mp3',
-    ytId: 'dD8uC-Q4c3U',
+    ytId: 'Gg6NMU4ivXM',
     year: '2006',
     duration: 268
   },
@@ -120,7 +120,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/Sajde Khatta Meetha 320 Kbps.mp3',
-    ytId: 'Jg7qV-b7V8c',
+    ytId: 'zfABYXP_NSA',
     year: '2010',
     duration: 305
   },
@@ -132,7 +132,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/O Meri Jaan Life In A Metro 320 Kbps.mp3',
-    ytId: '2c-a71e3F_o',
+    ytId: 'jZi8TI050ec',
     year: '2007',
     duration: 298
   },
@@ -144,7 +144,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Rock',
     cover: '/album_midnight.png',
     src: '/audio/Alvida Life In A Metro 320 Kbps.mp3',
-    ytId: 'b7V8c-Q4c3U',
+    ytId: 'hM9QDpLHhdw',
     year: '2007',
     duration: 342
   },
@@ -156,7 +156,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/Tujhe Sochta Hoon Jannat 2 320 Kbps.mp3',
-    ytId: '2Vv-BfVoq4g',
+    ytId: 'PkhfKq9m0Uo',
     year: '2012',
     duration: 315
   },
@@ -168,7 +168,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Sad Romance',
     cover: '/album_midnight.png',
     src: '/audio/Piya Aaye Na Aashiqui 2 320 Kbps.mp3',
-    ytId: 'QhQW2b0oX2A',
+    ytId: '2bMEe0UYa8E',
     year: '2013',
     duration: 286
   },
@@ -180,7 +180,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/Dil Kyun Yeh Mera Kites 320 Kbps.mp3',
-    ytId: 'dD8uC-Q4c3U',
+    ytId: 'maKDIvUVkQo',
     year: '2010',
     duration: 334
   },
@@ -192,7 +192,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/Zindagi Do Pal Ki Kites 320 Kbps.mp3',
-    ytId: 'Jg7qV-b7V8c',
+    ytId: 'r-XG86T2jNc',
     year: '2010',
     duration: 295
   },
@@ -204,7 +204,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Dance',
     cover: '/album_midnight.png',
     src: '/audio/Make Some Noise For The Desi Boyz Desi Boyz 320 Kbps.mp3',
-    ytId: '2c-a71e3F_o',
+    ytId: 'lyWHtKq1PcQ',
     year: '2011',
     duration: 245
   },
@@ -216,7 +216,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/Mat Aazma Re Murder 3 320 Kbps.mp3',
-    ytId: 'b7V8c-Q4c3U',
+    ytId: 'p_dtI2bLWhY',
     year: '2013',
     duration: 260
   },
@@ -228,7 +228,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/Abhi Abhi Jism 2 320 Kbps.mp3',
-    ytId: '2Vv-BfVoq4g',
+    ytId: 'HttLRTo4N6U',
     year: '2012',
     duration: 342
   },
@@ -240,7 +240,7 @@ export const LOCAL_TRACKS = [
     genre: 'Bollywood',
     cover: '/album_midnight.png',
     src: '/audio/Yun Hi Re David 320 Kbps.mp3',
-    ytId: 'QhQW2b0oX2A',
+    ytId: 'ETv-U0ytbDA',
     year: '2013',
     duration: 280
   }

@@ -36,7 +36,8 @@ export default function LiveFeed() {
       const currentUid = auth.currentUser?.uid;
 
       const freshUsers = rawUsers.filter(u => {
-        const isFresh = u.timestamp && (now - u.timestamp < 15000);
+        const ts = u.timestamp || u.updatedAt;
+        const isFresh = ts && (now - ts < 30000);
         return isFresh && u.isPlaying !== false;
       });
 

@@ -18,8 +18,6 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
   const ytContainerRef = useRef(null);
   const isYtApiReadyRef = useRef(false);
   const hasSeekedZeroRef = useRef(false);
-  const animationRef = useRef(null);
-  const volumeRampRef = useRef(null);
 
   const currentTrack = tracks[currentTrackIndex] || tracks[0] || {};
 
@@ -61,24 +59,38 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     return () => window.removeEventListener('beforeunload', handleUnload);
   }, [user]);
 
-  // Sync playing state to Firestore
+  // Sync playing state & periodic heartbeat to Firestore for Active Listeners
   useEffect(() => {
-    if (!user || (djSession && !djSession.isMaster) || !currentTrack.title) return;
-    
-    const userRef = doc(db, 'now_playing', user.uid);
-    
-    if (isPlaying) {
+    if (!user || (djSession && !djSession.isMaster) || !currentTrack.title || !isPlaying) {
+      if (user && !isPlaying) {
+        deleteDoc(doc(db, 'now_playing', user.uid)).catch(() => {});
+      }
+      return;
+    }
+
+    const updatePresence = () => {
+      const userRef = doc(db, 'now_playing', user.uid);
       setDoc(userRef, {
         userId: user.uid,
         displayName: generateUserName(user.uid),
         songTitle: currentTrack.title,
         artist: currentTrack.artist || 'Artist',
-        cover: currentTrack.cover || '',
-        updatedAt: Date.now()
+        cover: currentTrack.cover || '/album_midnight.png',
+        timestamp: Date.now(),
+        updatedAt: Date.now(),
+        isPlaying: true
       }).catch(err => console.error('Error syncing now_playing:', err));
-    } else {
-      deleteDoc(userRef).catch(err => console.error('Error deleting now_playing:', err));
-    }
+    };
+
+    updatePresence();
+    const interval = setInterval(updatePresence, 5000);
+
+    return () => {
+      clearInterval(interval);
+      if (user) {
+        deleteDoc(doc(db, 'now_playing', user.uid)).catch(() => {});
+      }
+    };
   }, [user, isPlaying, currentTrack, djSession]);
 
   // Master/Slave synchronization for listening sessions
@@ -117,26 +129,16 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     }, { merge: true }).catch(err => console.error('Error updating master session:', err));
   }, [djSession, currentTrackIndex, isPlaying]);
 
-  const getRandomNextIndex = useCallback(() => {
-    if (!tracks || tracks.length <= 1) return 0;
-    let nextIndex;
-    do {
-      nextIndex = Math.floor(Math.random() * tracks.length);
-    } while (nextIndex === currentTrackIndex);
-    return nextIndex;
-  }, [tracks, currentTrackIndex]);
-
   const handleNext = useCallback(() => {
-    pauseMedia();
-    const nextIndex = getRandomNextIndex();
+    if (!tracks || tracks.length <= 1) return;
+    const nextIndex = (currentTrackIndex + 1) % tracks.length;
     setCurrentTrackIndex(nextIndex);
     if (djSession && djSession.isMaster) {
       updateMasterSession(nextIndex, true);
     }
-  }, [getRandomNextIndex, setCurrentTrackIndex, djSession, updateMasterSession]);
+  }, [tracks, currentTrackIndex, setCurrentTrackIndex, djSession, updateMasterSession]);
 
   const handlePrev = useCallback(() => {
-    pauseMedia();
     if (!tracks || tracks.length <= 1) return;
     const prevIndex = (currentTrackIndex - 1 + tracks.length) % tracks.length;
     setCurrentTrackIndex(prevIndex);
@@ -149,6 +151,8 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     if (currentTrack.ytId && ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
       try {
         if (audioRef.current) audioRef.current.pause();
+        ytPlayerRef.current.unMute();
+        ytPlayerRef.current.setVolume(100);
         ytPlayerRef.current.playVideo();
         setIsPlaying(true);
       } catch (_) {}
@@ -170,7 +174,7 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     setIsPlaying(false);
   };
 
-  // Handle Track Changes (Zero out timestamp)
+  // Handle Track Changes (Zero out timestamp & auto-play)
   useEffect(() => {
     setIsLoading(true);
     setCurrentTime(0);
@@ -183,7 +187,7 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
       try { audioRef.current.currentTime = 0; } catch (_) {}
     }
 
-    // Handle YouTube track (Enforce startSeconds: 0)
+    // Handle YouTube track
     if (currentTrack.ytId) {
       const videoId = currentTrack.ytId;
 
@@ -191,13 +195,15 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
         if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
           ytPlayerRef.current.loadVideoById({ videoId: videoId, startSeconds: 0 });
           try { ytPlayerRef.current.seekTo(0, true); } catch (_) {}
-          ytPlayerRef.current.playVideo();
+          try { ytPlayerRef.current.unMute(); } catch (_) {}
+          try { ytPlayerRef.current.setVolume(100); } catch (_) {}
+          try { ytPlayerRef.current.playVideo(); } catch (_) {}
           setIsPlaying(true);
           setIsLoading(false);
         } else if (window.YT && window.YT.Player && ytContainerRef.current) {
           ytPlayerRef.current = new window.YT.Player(ytContainerRef.current, {
-            height: '1',
-            width: '1',
+            height: '200',
+            width: '200',
             videoId: videoId,
             playerVars: {
               autoplay: 1,
@@ -210,13 +216,19 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
             },
             events: {
               onReady: (evt) => {
+                try { evt.target.unMute(); } catch (_) {}
+                try { evt.target.setVolume(100); } catch (_) {}
                 try { evt.target.seekTo(0, true); } catch (_) {}
                 evt.target.playVideo();
                 setIsPlaying(true);
                 setIsLoading(false);
               },
               onStateChange: (evt) => {
-                if (evt.data === window.YT.PlayerState.PLAYING) {
+                try { evt.target.unMute(); } catch (_) {}
+                try { evt.target.setVolume(100); } catch (_) {}
+                if (evt.data === window.YT.PlayerState.CUED) {
+                  evt.target.playVideo();
+                } else if (evt.data === window.YT.PlayerState.PLAYING) {
                   if (!hasSeekedZeroRef.current) {
                     hasSeekedZeroRef.current = true;
                     try { evt.target.seekTo(0, true); } catch (_) {}
@@ -228,6 +240,10 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
                 } else if (evt.data === window.YT.PlayerState.PAUSED) {
                   setIsPlaying(false);
                 }
+              },
+              onError: () => {
+                setIsLoading(false);
+                handleNext();
               }
             }
           });
@@ -301,7 +317,7 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
   return (
     <div className="modern-player-wrapper">
       {/* Hidden YouTube Container */}
-      <div style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+      <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', width: '200px', height: '200px', opacity: 0.01, pointerEvents: 'none' }}>
         <div ref={ytContainerRef} id="yt-player-container" />
       </div>
 
