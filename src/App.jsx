@@ -156,8 +156,6 @@ export default function App() {
             </p>
           </div>
 
-          {/* Search field commented out */}
-          {/* 
           <div className="player-top-actions">
             <button 
               className="floating-search-btn"
@@ -168,10 +166,9 @@ export default function App() {
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
-              <span>Search Songs</span>
+              <span>Search Online Songs</span>
             </button>
           </div>
-          */}
 
           {renderPlayer()}
         </div>
