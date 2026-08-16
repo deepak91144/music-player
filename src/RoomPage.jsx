@@ -1,121 +1,74 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
 import LiveChat from './LiveChat';
-import { db, auth, generateUserName } from './firebase';
 import './RoomPage.css';
 
-const THEMES = [
-  { id: 'romantic', name: '💖 Romantic', icon: '💖' },
-  { id: 'cozy', name: '☕ Cozy', icon: '☕' },
-  { id: 'lazy', name: '🛋️ Lazy', icon: '🛋️' },
-  { id: 'sleepy', name: '🌙 Sleepy', icon: '🌙' },
-];
-
-const ListeningDuo = ({ djName, listenerName }) => {
+function ListeningDuo({ djName, listenerName }) {
   return (
-    <div className="listening-duo">
-      {/* DJ Character */}
-      <div className="duo-character dj-side">
-        <div className="character-avatar-box">
-          <div className="headphones-graphic">🎧</div>
-          <div className="avatar-face dj-face">
-            <span className="face-expression">(•‿•)</span>
-          </div>
-          <span className="duo-badge dj-badge">DJ</span>
-        </div>
-        <span className="duo-username">{djName}</span>
-      </div>
-
-      {/* Musical Connection Soundwaves */}
-      <div className="duo-audio-bridge">
-        <span className="music-note n1">🎵</span>
-        <div className="connecting-equalizer">
-          <span className="eq-bar b1"></span>
-          <span className="eq-bar b2"></span>
-          <span className="eq-bar b3"></span>
-          <span className="eq-bar b4"></span>
-        </div>
-        <span className="music-note n2">🎶</span>
-      </div>
-
-      {/* Listener Character */}
-      <div className="duo-character listener-side">
-        <div className="character-avatar-box">
-          <div className="headphones-graphic">🎧</div>
-          <div className="avatar-face listener-face">
-            <span className="face-expression">(◠‿◠)</span>
-          </div>
-          <span className="duo-badge listener-badge">LISTENER</span>
-        </div>
-        <span className="duo-username">{listenerName}</span>
-      </div>
+    <div className="listening-duo-badge">
+      <span className="duo-icon">🎧</span>
+      <span className="duo-text"><strong>{djName}</strong> &amp; <strong>{listenerName}</strong> listening together</span>
     </div>
   );
-};
+}
+
+const THEMES = [
+  { id: 'default', name: '✨ Midnight Purple', class: '' },
+  { id: 'neon-cyberpunk', name: '⚡ Neon Cyberpunk', class: 'theme-neon-cyberpunk' },
+  { id: 'sunset-lofi', name: '🌅 Sunset Lofi', class: 'theme-sunset-lofi' },
+  { id: 'retro-synthwave', name: '📼 Retro Synthwave', class: 'theme-retro-synthwave' },
+  { id: 'deep-space', name: '🌌 Deep Space', class: 'theme-deep-space' }
+];
 
 export default function RoomPage({ djSession, setDjSession, children, onOpenSearch }) {
-  const [currentTheme, setCurrentTheme] = useState(() => {
-    return localStorage.getItem('room_bg_theme') || 'romantic';
-  });
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState(() => {
+    return localStorage.getItem('room_theme') || 'default';
+  });
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
-  const [duckState, setDuckState] = useState({ isDucked: false, duckRatio: 1.0 });
+  const [callNotice, setCallNotice] = useState(null);
+  const [duckState, setDuckState] = useState({ isDucked: false, duckRatio: 0.4 });
 
-  const prevCallStatusRef = useRef('idle');
-
-  const handleCallStatusChange = useCallback((status) => {
-    // Only auto-open sidebar when call transitions into 'incoming' or 'calling'
-    if (status !== prevCallStatusRef.current) {
-      if (status === 'incoming' || status === 'calling') {
-        setIsChatOpen(true);
-      }
-      prevCallStatusRef.current = status;
+  // Load saved theme on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('room_theme');
+    if (savedTheme) {
+      setCurrentTheme(savedTheme);
     }
   }, []);
 
-  const myName = auth.currentUser ? generateUserName(auth.currentUser.uid) : "You";
-  const partnerName = djSession.partnerName || "Partner";
-
-  const djName = djSession.isMaster ? `${myName} (You)` : partnerName;
-  const listenerName = djSession.isMaster ? partnerName : `${myName} (You)`;
-
-  // Real-time synchronization of background theme
-  useEffect(() => {
-    if (!djSession?.roomId) return;
-
-    const themeDocRef = doc(db, 'room_themes', djSession.roomId);
-    
-    const unsubscribe = onSnapshot(themeDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.theme) {
-          setCurrentTheme(data.theme);
-          localStorage.setItem('room_bg_theme', data.theme);
-        }
-      }
-    });
-
-    return () => unsubscribe();
-  }, [djSession?.roomId]);
-
   const handleThemeChange = (themeId) => {
     setCurrentTheme(themeId);
-    localStorage.setItem('room_bg_theme', themeId);
+    localStorage.setItem('room_theme', themeId);
+  };
 
-    if (djSession?.roomId) {
-      setDoc(doc(db, 'room_themes', djSession.roomId), {
-        theme: themeId,
-        updatedBy: auth.currentUser?.uid || 'user',
-        timestamp: Date.now()
-      }, { merge: true }).catch(err => console.warn("Theme sync error:", err));
+  const handleCallStatusChange = (status) => {
+    if (status.isCalling) {
+      setCallNotice(`📞 Call in progress with ${status.callerName}`);
+    } else if (status.isRinging) {
+      setCallNotice(`🔔 ${status.callerName} is calling you...`);
+    } else {
+      setCallNotice(null);
     }
   };
 
+  const djName = djSession.isMaster 
+    ? (djSession.name || 'You (DJ)') 
+    : (djSession.partnerName || djSession.name || 'DJ');
+    
+  const listenerName = djSession.isMaster 
+    ? (djSession.partnerName || 'Listener') 
+    : 'You (Listener)';
+
+  const activeThemeClass = THEMES.find(t => t.id === currentTheme)?.class || '';
+
   return (
-    <div className={`room-page-container theme-${currentTheme}`}>
-      {/* Ambient background glow layers */}
-      <div className="theme-ambient-glow"></div>
-      <div className="theme-ambient-particles"></div>
+    <div className={`room-container ${activeThemeClass}`}>
+      {/* Call Notice Banner */}
+      {callNotice && (
+        <div className="room-call-banner">
+          <span>{callNotice}</span>
+        </div>
+      )}
 
       {/* Header */}
       <div className="room-header">
@@ -158,7 +111,7 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
           />
         )}
 
-        {/* Chat Section / Sidebar (90% width on mobile) */}
+        {/* Chat Section / Sidebar */}
         <div className={`room-chat-section ${isChatOpen ? 'mobile-open' : ''}`}>
           <div className="mobile-chat-header">
             <span className="mobile-chat-title">💬 Live Room Chat</span>
@@ -179,67 +132,83 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
         </div>
       </div>
 
-      {/* Floating Theme Button & Popup Menu (Hidden when sidebar is open) */}
+      {/* Unified Mobile Bottom Navigation Bar: [ Themes | Search | Chat ] */}
       {!isChatOpen && (
-        <div className="floating-theme-wrapper">
-          {isThemeMenuOpen && (
-            <div className="floating-theme-menu">
-              <div className="floating-theme-header">
-                <span>🎨 Choose Theme</span>
-                <button 
-                  type="button" 
-                  className="theme-menu-close-btn" 
-                  onClick={() => setIsThemeMenuOpen(false)}
-                  title="Close Theme Menu"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="floating-theme-options">
-                {THEMES.map((theme) => (
-                  <button
-                    key={theme.id}
-                    className={`theme-option-btn ${currentTheme === theme.id ? 'active' : ''}`}
-                    onClick={() => {
-                      handleThemeChange(theme.id);
-                      setIsThemeMenuOpen(false);
-                    }}
-                    title={`Switch to ${theme.name}`}
+        <div className="room-mobile-bottom-bar">
+          {/* Floating Theme Button & Popup Menu */}
+          <div className="floating-theme-wrapper">
+            {isThemeMenuOpen && (
+              <div className="floating-theme-menu">
+                <div className="floating-theme-header">
+                  <span>🎨 Choose Theme</span>
+                  <button 
+                    type="button" 
+                    className="theme-menu-close-btn" 
+                    onClick={() => setIsThemeMenuOpen(false)}
+                    title="Close Theme Menu"
                   >
-                    <span className="theme-option-name">{theme.name}</span>
-                    {currentTheme === theme.id && <span className="theme-check-icon">✓</span>}
+                    ✕
                   </button>
-                ))}
+                </div>
+                <div className="floating-theme-options">
+                  {THEMES.map((theme) => (
+                    <button
+                      key={theme.id}
+                      className={`theme-option-btn ${currentTheme === theme.id ? 'active' : ''}`}
+                      onClick={() => {
+                        handleThemeChange(theme.id);
+                        setIsThemeMenuOpen(false);
+                      }}
+                      title={`Switch to ${theme.name}`}
+                    >
+                      <span className="theme-option-name">{theme.name}</span>
+                      {currentTheme === theme.id && <span className="theme-check-icon">✓</span>}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            <button 
+              className={`floating-theme-btn ${isThemeMenuOpen ? 'active' : ''}`}
+              onClick={() => setIsThemeMenuOpen(prev => !prev)}
+              title="Choose Room Theme"
+            >
+              <span className="floating-theme-icon">🎨</span>
+              <span className="floating-theme-label">Themes</span>
+            </button>
+          </div>
+
+          {/* Search Button in between Themes and Chat */}
+          {onOpenSearch && (
+            <button 
+              className="floating-search-btn-room" 
+              onClick={onOpenSearch} 
+              title="Search Online Songs"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <span>Search</span>
+            </button>
           )}
 
+          {/* Chat Toggle Button */}
           <button 
-            className={`floating-theme-btn ${isThemeMenuOpen ? 'active' : ''}`}
-            onClick={() => setIsThemeMenuOpen(prev => !prev)}
-            title="Choose Room Theme"
+            className="floating-chat-btn" 
+            onClick={() => {
+              setIsChatOpen(true);
+              setIsThemeMenuOpen(false);
+            }}
+            title="Open Live Chat"
           >
-            <span className="floating-theme-icon">🎨</span>
-            <span className="floating-theme-label">Themes</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            <span className="floating-chat-label">Chat</span>
           </button>
         </div>
-      )}
-
-      {/* Floating Chat Icon Button (Only visible when sidebar is closed) */}
-      {!isChatOpen && (
-        <button 
-          className="floating-chat-btn" 
-          onClick={() => {
-            setIsChatOpen(true);
-            setIsThemeMenuOpen(false);
-          }}
-          title="Open Live Chat"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
-          <span className="floating-chat-label">Chat</span>
-        </button>
       )}
     </div>
   );
