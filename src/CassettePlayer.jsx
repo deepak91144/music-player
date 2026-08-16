@@ -18,8 +18,14 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
   const ytContainerRef = useRef(null);
   const isYtApiReadyRef = useRef(false);
   const hasSeekedZeroRef = useRef(false);
+  const hasSyncedRoomRef = useRef(false);
 
   const currentTrack = tracks[currentTrackIndex] || tracks[0] || {};
+
+  // Reset room sync flag whenever room session changes
+  useEffect(() => {
+    hasSyncedRoomRef.current = false;
+  }, [djSession?.id]);
 
   // Load YouTube iFrame API script on mount
   useEffect(() => {
@@ -114,7 +120,7 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
     }
   }, [djSession?.isMaster, currentTrackIndex, djSession?.id]);
 
-  // Listener Sync Effect (Slave mode)
+  // Listener Sync Effect (Slave mode) - Forces initial track playback on room entrance
   useEffect(() => {
     if (!djSession || djSession.isMaster) return;
 
@@ -134,10 +140,12 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
         );
 
         if (foundIdx !== -1) {
-          if (foundIdx !== currentTrackIndex) {
+          if (foundIdx !== currentTrackIndex || !hasSyncedRoomRef.current) {
+            hasSyncedRoomRef.current = true;
             setCurrentTrackIndex(foundIdx);
           }
         } else if (setTracks) {
+          hasSyncedRoomRef.current = true;
           setTracks(prev => {
             const updated = [...prev, masterTrack];
             setCurrentTrackIndex(updated.length - 1);
@@ -148,8 +156,10 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
 
       if (masterIsPlaying) {
         setIsPlaying(true);
+        setTimeout(() => playMedia(), 50);
       } else {
         setIsPlaying(false);
+        pauseMedia();
       }
     });
 
