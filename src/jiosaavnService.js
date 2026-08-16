@@ -335,11 +335,9 @@ export function formatJioSaavnTrack(rawSong) {
     mediaUrl = rawSong.vlink;
   }
 
-  // Fallback to local track audio src matching title if stream is unavailable
+  // Ensure mediaUrl exists and is valid
   if (!mediaUrl) {
-    const songTitleLower = (rawSong.title || rawSong.name || '').toLowerCase();
-    const localMatch = LOCAL_TRACKS.find(t => songTitleLower.includes(t.title.toLowerCase()) || t.title.toLowerCase().includes(songTitleLower));
-    mediaUrl = localMatch ? localMatch.src : LOCAL_TRACKS[0].src;
+    return null;
   }
 
   const durationSec = parseInt(moreInfo.duration || rawSong.duration || 0, 10);
