@@ -157,21 +157,19 @@ export default function RoomPage({ djSession, setDjSession, children }) {
         </div>
       </div>
 
-      {/* Floating Chat Icon Button */}
-      <button 
-        className={`floating-chat-btn ${isChatOpen ? 'active' : ''}`} 
-        onClick={() => setIsChatOpen(prev => !prev)}
-        title={isChatOpen ? "Close Chat" : "Open Live Chat"}
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          {isChatOpen ? (
-            <path d="M18 6L6 18M6 6l12 12" />
-          ) : (
+      {/* Floating Chat Icon Button (Only visible when sidebar is closed) */}
+      {!isChatOpen && (
+        <button 
+          className="floating-chat-btn" 
+          onClick={() => setIsChatOpen(true)}
+          title="Open Live Chat"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          )}
-        </svg>
-        <span className="floating-chat-label">Chat</span>
-      </button>
+          </svg>
+          <span className="floating-chat-label">Chat</span>
+        </button>
+      )}
     </div>
   );
 }

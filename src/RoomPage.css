@@ -531,11 +531,7 @@
 }
 
 .floating-chat-btn.active {
-  background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-color: rgba(255, 255, 255, 0.35);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  display: none !important;
 }
 
 .mobile-chat-header {
@@ -627,22 +623,23 @@
     to { opacity: 1; }
   }
 
-  /* Mobile Sidebar: takes 90% of screen width */
+  /* Mobile Sidebar: takes 100% of screen width */
   .room-chat-section {
     position: fixed;
     top: 0;
+    left: 0;
     right: 0;
     bottom: 0;
-    width: 90vw;
-    max-width: 90%;
+    width: 100vw;
+    max-width: 100%;
     height: 100vh;
     height: 100dvh;
     z-index: 9999;
-    background: rgba(18, 12, 28, 0.95);
+    background: rgba(18, 12, 28, 0.96);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    border-left: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: -15px 0 45px rgba(0, 0, 0, 0.8);
+    border-left: none;
+    box-shadow: none;
     transform: translateX(100%);
     transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex;
@@ -659,8 +656,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 18px;
-    background: rgba(0, 0, 0, 0.3);
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.35);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     flex-shrink: 0;
   }
