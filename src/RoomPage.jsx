@@ -58,6 +58,7 @@ export default function RoomPage({ djSession, setDjSession, children }) {
     return localStorage.getItem('room_bg_theme') || 'romantic';
   });
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isCallSpeaking, setIsCallSpeaking] = useState(false);
 
   const myName = auth.currentUser ? generateUserName(auth.currentUser.uid) : "You";
   const partnerName = djSession.partnerName || "Partner";
@@ -129,7 +130,9 @@ export default function RoomPage({ djSession, setDjSession, children }) {
       <div className="room-content">
         <div className="room-player-section">
           <ListeningDuo djName={djName} listenerName={listenerName} />
-          {children}
+          {React.isValidElement(children) 
+            ? React.cloneElement(children, { isCallSpeaking }) 
+            : children}
         </div>
 
         {/* Chat Backdrop for Mobile Sidebar */}
@@ -153,7 +156,7 @@ export default function RoomPage({ djSession, setDjSession, children }) {
               ✕
             </button>
           </div>
-          <LiveChat roomId={djSession.roomId} />
+          <LiveChat roomId={djSession.roomId} onSpeakingChange={setIsCallSpeaking} />
         </div>
       </div>
 

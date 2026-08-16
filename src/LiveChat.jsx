@@ -120,7 +120,7 @@ function VoiceNotePlayer({ audioUrl }) {
   );
 }
 
-export default function LiveChat({ roomId }) {
+export default function LiveChat({ roomId, onSpeakingChange }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
@@ -139,11 +139,21 @@ export default function LiveChat({ roomId }) {
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [incomingCallData, setIncomingCallData] = useState(null);
 
+  // Speech Activity Detection (VAD) states & refs
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const isSpeakingRef = useRef(false);
+  const vadAudioCtxRef = useRef(null);
+  const vadAnalyserLocalRef = useRef(null);
+  const vadAnalyserRemoteRef = useRef(null);
+  const vadFrameRef = useRef(null);
+  const silenceTimeoutRef = useRef(null);
+
   const callStatusRef = useRef('idle');
   callStatusRef.current = callStatus;
 
   const pcRef = useRef(null);
   const localStreamRef = useRef(null);
+  const remoteStreamRef = useRef(null);
   const remoteAudioRef = useRef(null);
 
   const messagesEndRef = useRef(null);
@@ -260,6 +270,130 @@ export default function LiveChat({ roomId }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, typingUsers, isRecording, callStatus]);
 
+  // Clean up Voice Activity Detection (VAD) audio analyzer
+  const stopSpeechDetection = () => {
+    if (vadFrameRef.current) {
+      cancelAnimationFrame(vadFrameRef.current);
+      vadFrameRef.current = null;
+    }
+    if (silenceTimeoutRef.current) {
+      clearTimeout(silenceTimeoutRef.current);
+      silenceTimeoutRef.current = null;
+    }
+    if (vadAudioCtxRef.current) {
+      try { vadAudioCtxRef.current.close(); } catch (_) {}
+      vadAudioCtxRef.current = null;
+    }
+    vadAnalyserLocalRef.current = null;
+    vadAnalyserRemoteRef.current = null;
+    if (isSpeakingRef.current) {
+      isSpeakingRef.current = false;
+      setIsSpeaking(false);
+      if (onSpeakingChange) onSpeakingChange(false);
+    }
+  };
+
+  // Real-time Voice Activity Detection (VAD) while in active call
+  useEffect(() => {
+    if (callStatus !== 'connected') {
+      stopSpeechDetection();
+      return;
+    }
+
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = new AudioContext();
+      vadAudioCtxRef.current = audioCtx;
+
+      // Local microphone analyzer
+      if (localStreamRef.current && localStreamRef.current.getAudioTracks().length > 0) {
+        const localSource = audioCtx.createMediaStreamSource(localStreamRef.current);
+        const analyserLocal = audioCtx.createAnalyser();
+        analyserLocal.fftSize = 512;
+        localSource.connect(analyserLocal);
+        vadAnalyserLocalRef.current = analyserLocal;
+      }
+
+      // Remote caller stream analyzer
+      if (remoteStreamRef.current && remoteStreamRef.current.getAudioTracks().length > 0) {
+        const remoteSource = audioCtx.createMediaStreamSource(remoteStreamRef.current);
+        const analyserRemote = audioCtx.createAnalyser();
+        analyserRemote.fftSize = 512;
+        remoteSource.connect(analyserRemote);
+        vadAnalyserRemoteRef.current = analyserRemote;
+      }
+
+      const analyzeAudio = () => {
+        let speakingDetected = false;
+
+        // Analyze local mic input level
+        if (vadAnalyserLocalRef.current && localStreamRef.current) {
+          const track = localStreamRef.current.getAudioTracks()[0];
+          if (track && track.enabled) {
+            const dataArray = new Uint8Array(vadAnalyserLocalRef.current.frequencyBinCount);
+            vadAnalyserLocalRef.current.getByteTimeDomainData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+              const v = (dataArray[i] - 128) / 128;
+              sum += v * v;
+            }
+            const rms = Math.sqrt(sum / dataArray.length);
+            if (rms > 0.02) {
+              speakingDetected = true;
+            }
+          }
+        }
+
+        // Analyze remote audio input level
+        if (!speakingDetected && vadAnalyserRemoteRef.current) {
+          const dataArray = new Uint8Array(vadAnalyserRemoteRef.current.frequencyBinCount);
+          vadAnalyserRemoteRef.current.getByteTimeDomainData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            const v = (dataArray[i] - 128) / 128;
+            sum += v * v;
+          }
+          const rms = Math.sqrt(sum / dataArray.length);
+          if (rms > 0.02) {
+            speakingDetected = true;
+          }
+        }
+
+        if (speakingDetected) {
+          if (silenceTimeoutRef.current) {
+            clearTimeout(silenceTimeoutRef.current);
+            silenceTimeoutRef.current = null;
+          }
+          if (!isSpeakingRef.current) {
+            isSpeakingRef.current = true;
+            setIsSpeaking(true);
+            if (onSpeakingChange) onSpeakingChange(true);
+          }
+        } else {
+          // Keep ducking active for ~800ms during natural speech pauses
+          if (isSpeakingRef.current && !silenceTimeoutRef.current) {
+            silenceTimeoutRef.current = setTimeout(() => {
+              isSpeakingRef.current = false;
+              setIsSpeaking(false);
+              if (onSpeakingChange) onSpeakingChange(false);
+              silenceTimeoutRef.current = null;
+            }, 800);
+          }
+        }
+
+        vadFrameRef.current = requestAnimationFrame(analyzeAudio);
+      };
+
+      vadFrameRef.current = requestAnimationFrame(analyzeAudio);
+    } catch (err) {
+      console.warn('Speech detection VAD error:', err);
+    }
+
+    return () => {
+      stopSpeechDetection();
+    };
+  }, [callStatus, onSpeakingChange]);
+
   const formatTime = (ts) => {
     if (!ts) return '';
     const date = new Date(ts);
@@ -275,6 +409,7 @@ export default function LiveChat({ roomId }) {
   // Clean up WebRTC peer connection & media streams
   const cleanupCall = () => {
     stopRingtone();
+    stopSpeechDetection();
     if (pcRef.current) {
       pcRef.current.close();
       pcRef.current = null;
@@ -286,6 +421,7 @@ export default function LiveChat({ roomId }) {
     if (remoteAudioRef.current) {
       remoteAudioRef.current.srcObject = null;
     }
+    remoteStreamRef.current = null;
     setCallStatus('idle');
     setIsMicMuted(false);
     setIncomingCallData(null);
@@ -308,6 +444,7 @@ export default function LiveChat({ roomId }) {
       pc.ontrack = (event) => {
         if (remoteAudioRef.current && event.streams[0]) {
           remoteAudioRef.current.srcObject = event.streams[0];
+          remoteStreamRef.current = event.streams[0];
           setCallStatus('connected');
         }
       };
@@ -385,6 +522,7 @@ export default function LiveChat({ roomId }) {
       pc.ontrack = (event) => {
         if (remoteAudioRef.current && event.streams[0]) {
           remoteAudioRef.current.srcObject = event.streams[0];
+          remoteStreamRef.current = event.streams[0];
           setCallStatus('connected');
         }
       };
@@ -727,7 +865,10 @@ export default function LiveChat({ roomId }) {
       {callStatus === 'connected' && (
         <div className="chat-live-call-active-bar">
           <span className="active-dot"></span>
-          <span className="active-call-label">🟢 Voice Call Active</span>
+          <span className="active-call-label">
+            🟢 Voice Call Active
+            {isSpeaking && <span className="ducking-badge">🔉 Music Auto-Ducked</span>}
+          </span>
           <button type="button" className="call-bar-mute-btn" onClick={toggleMuteMic}>
             {isMicMuted ? '🔇 Unmute' : '🎙️ Mute'}
           </button>

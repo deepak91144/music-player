@@ -3,7 +3,7 @@ import { doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { db, signInAnonymousUser, generateUserName } from './firebase';
 import './CassettePlayer.css';
 
-export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTrackIndex, djSession, setDjSession }) {
+export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTrackIndex, djSession, setDjSession, isCallSpeaking }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -14,6 +14,7 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
 
   const audioRef = useRef(null);
   const animationRef = useRef(null);
+  const volumeRampRef = useRef(null);
 
   const currentTrack = tracks[currentTrackIndex] || tracks[0] || {};
 
@@ -152,12 +153,42 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     }
   }, [currentTrackIndex, currentTrack.src]);
 
-  // Sync volume
+  // Smooth volume ducking when live call speech is active
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume;
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const baseVol = isMuted ? 0 : volume;
+    // Lower volume to 20% when someone is speaking over live call
+    const targetVol = isCallSpeaking ? baseVol * 0.2 : baseVol;
+
+    if (volumeRampRef.current) {
+      clearInterval(volumeRampRef.current);
     }
-  }, [volume, isMuted]);
+
+    // Smoothly interpolate current volume to target volume
+    volumeRampRef.current = setInterval(() => {
+      if (!audioRef.current) return;
+      const currentVol = audioRef.current.volume;
+      const diff = targetVol - currentVol;
+
+      if (Math.abs(diff) < 0.008) {
+        audioRef.current.volume = targetVol;
+        clearInterval(volumeRampRef.current);
+        volumeRampRef.current = null;
+      } else {
+        const step = diff > 0 ? 0.035 : 0.07;
+        audioRef.current.volume = Math.max(0, Math.min(1, currentVol + diff * step));
+      }
+    }, 20);
+
+    return () => {
+      if (volumeRampRef.current) {
+        clearInterval(volumeRampRef.current);
+        volumeRampRef.current = null;
+      }
+    };
+  }, [isCallSpeaking, volume, isMuted]);
 
   // Update progress via requestAnimationFrame
   const updateProgress = useCallback(() => {
