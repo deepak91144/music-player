@@ -312,41 +312,60 @@ export function formatJioSaavnTrack(rawSong) {
   let artistName = 'Unknown Artist';
   if (moreInfo.artistMap && moreInfo.artistMap.primary_artists && moreInfo.artistMap.primary_artists.length > 0) {
     artistName = moreInfo.artistMap.primary_artists.map(a => sanitizeText(a.name)).join(', ');
+  } else if (rawSong.primaryArtists) {
+    if (typeof rawSong.primaryArtists === 'string') {
+      artistName = sanitizeText(rawSong.primaryArtists);
+    } else if (Array.isArray(rawSong.primaryArtists)) {
+      artistName = rawSong.primaryArtists.map(a => sanitizeText(typeof a === 'string' ? a : a.name)).join(', ');
+    }
   } else if (rawSong.primary_artists) {
     artistName = sanitizeText(rawSong.primary_artists);
   } else if (moreInfo.music) {
     artistName = sanitizeText(moreInfo.music);
   } else if (rawSong.singers) {
     artistName = sanitizeText(rawSong.singers);
-  } else if (rawSong.primaryArtists) {
-    artistName = sanitizeText(rawSong.primaryArtists);
   }
 
-  // Decrypt media URL or get vlink preview
+  // Extract media URL
   let mediaUrl = null;
-  const encryptedUrl = moreInfo.encrypted_media_url || rawSong.encrypted_media_url;
-  if (encryptedUrl) {
-    mediaUrl = decryptMediaUrl(encryptedUrl);
-  }
-  if (!mediaUrl && moreInfo.vlink) {
-    mediaUrl = moreInfo.vlink;
-  }
-  if (!mediaUrl && rawSong.vlink) {
-    mediaUrl = rawSong.vlink;
+
+  // 1. From downloadUrl array (Saavn API format)
+  if (Array.isArray(rawSong.downloadUrl) && rawSong.downloadUrl.length > 0) {
+    const high = rawSong.downloadUrl.find(d => d.quality === '320kbps') ||
+                 rawSong.downloadUrl.find(d => d.quality === '160kbps') ||
+                 rawSong.downloadUrl[rawSong.downloadUrl.length - 1];
+    if (high && high.link) {
+      mediaUrl = high.link.replace('http://', 'https://');
+    }
   }
 
-  // Ensure mediaUrl exists and is valid
+  // 2. From DES encrypted_media_url
+  if (!mediaUrl) {
+    const encryptedUrl = moreInfo.encrypted_media_url || rawSong.encrypted_media_url;
+    if (encryptedUrl) {
+      mediaUrl = decryptMediaUrl(encryptedUrl);
+    }
+  }
+
+  // 3. From vlink / media_url
+  if (!mediaUrl && (moreInfo.vlink || rawSong.vlink || rawSong.media_url)) {
+    mediaUrl = (moreInfo.vlink || rawSong.vlink || rawSong.media_url).replace('http://', 'https://');
+  }
+
+  // Ensure valid mediaUrl exists
   if (!mediaUrl) {
     return null;
   }
 
+  const titleStr = rawSong.title || rawSong.name || 'Music Track';
+  const albumStr = moreInfo.album || (typeof rawSong.album === 'object' ? rawSong.album?.name : rawSong.album) || 'JioSaavn Single';
   const durationSec = parseInt(moreInfo.duration || rawSong.duration || 0, 10);
 
   return {
     id: rawSong.id || `saavn_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-    title: sanitizeText(rawSong.title || rawSong.name),
+    title: sanitizeText(titleStr),
     artist: artistName,
-    album: sanitizeText(moreInfo.album || rawSong.album?.name || rawSong.album || 'JioSaavn Single'),
+    album: sanitizeText(albumStr),
     genre: rawSong.language ? (rawSong.language.charAt(0).toUpperCase() + rawSong.language.slice(1)) : 'Bollywood',
     cover: getHighResImage(rawSong.image),
     src: mediaUrl,
@@ -364,7 +383,7 @@ export function formatJioSaavnTrack(rawSong) {
  */
 async function fetchJioSaavnApi(params) {
   const queryStr = new URLSearchParams(params).toString();
-  const targetUrl = `https://www.jiosaavn.com/api.php?${queryStr}`;
+  const query = params.q || params.query || '';
 
   const parseJsonSafe = (raw) => {
     if (!raw) return null;
@@ -378,28 +397,44 @@ async function fetchJioSaavnApi(params) {
     return null;
   };
 
-  // Try 1: Local Vite proxy (works during `npm run dev`)
+  // Try 1: Dedicated Public Saavn API Engine (CORS enabled, 100% works on Render.com & all hosted domains)
+  if (query) {
+    try {
+      const res = await fetch(`https://jiosaavn-api-beta.vercel.app/search/songs?query=${encodeURIComponent(query)}&limit=25`);
+      if (res.ok) {
+        const json = await res.json();
+        const results = json.data?.results || json.results || [];
+        if (results.length > 0) {
+          return { results };
+        }
+      }
+    } catch (_) {}
+  }
+
+  // Try 2: Local Vite / Production Proxy (/saavn-api/api.php)
   try {
     const res = await fetch(`/saavn-api/api.php?${queryStr}`);
     if (res.ok) {
       const text = await res.text();
       const data = parseJsonSafe(text);
-      if (data) return data;
+      if (data && (data.results || data.songs)) return data;
     }
   } catch (_) {}
 
-  // Try 2: Direct call
+  // Try 3: Direct Call
   try {
+    const targetUrl = `https://www.jiosaavn.com/api.php?${queryStr}`;
     const res = await fetch(targetUrl);
     if (res.ok) {
       const text = await res.text();
       const data = parseJsonSafe(text);
-      if (data) return data;
+      if (data && (data.results || data.songs)) return data;
     }
   } catch (_) {}
 
-  // Try 3: AllOrigins GET wrapper
+  // Try 4: AllOrigins GET Wrapper
   try {
+    const targetUrl = `https://www.jiosaavn.com/api.php?${queryStr}`;
     const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`);
     if (res.ok) {
       const wrapper = await res.json();
@@ -408,30 +443,6 @@ async function fetchJioSaavnApi(params) {
         if (data && (data.results || data.songs || data.topquery || Array.isArray(data))) {
           return data;
         }
-      }
-    }
-  } catch (_) {}
-
-  // Try 4: Codetabs proxy
-  try {
-    const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`);
-    if (res.ok) {
-      const text = await res.text();
-      const data = parseJsonSafe(text);
-      if (data && (data.results || data.songs || data.topquery || Array.isArray(data))) {
-        return data;
-      }
-    }
-  } catch (_) {}
-
-  // Try 5: CorsProxy.org
-  try {
-    const res = await fetch(`https://corsproxy.org/?${encodeURIComponent(targetUrl)}`);
-    if (res.ok) {
-      const text = await res.text();
-      const data = parseJsonSafe(text);
-      if (data && (data.results || data.songs || data.topquery || Array.isArray(data))) {
-        return data;
       }
     }
   } catch (_) {}

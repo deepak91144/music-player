@@ -142,24 +142,21 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
 
     const resetTimeToZero = () => {
       try {
-        if (audio.currentTime > 0.5) {
-          audio.currentTime = 0;
-        }
+        audio.currentTime = 0;
       } catch (_) {}
     };
 
     audio.addEventListener('loadedmetadata', resetTimeToZero, { once: true });
     audio.addEventListener('canplay', resetTimeToZero, { once: true });
+    audio.addEventListener('play', resetTimeToZero, { once: true });
+    audio.addEventListener('playing', resetTimeToZero, { once: true });
 
     // Always auto-play from 0:00 when a new track is loaded
     const playPromise = audio.play();
     if (playPromise) {
       playPromise.then(() => {
         try {
-          // Double check time is at beginning on start
-          if (audio.currentTime > 1.0) {
-            audio.currentTime = 0;
-          }
+          audio.currentTime = 0;
         } catch (_) {}
         setIsPlaying(true);
       }).catch((err) => {
@@ -171,6 +168,8 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     return () => {
       audio.removeEventListener('loadedmetadata', resetTimeToZero);
       audio.removeEventListener('canplay', resetTimeToZero);
+      audio.removeEventListener('play', resetTimeToZero);
+      audio.removeEventListener('playing', resetTimeToZero);
     };
   }, [currentTrackIndex, currentTrack.src]);
 
