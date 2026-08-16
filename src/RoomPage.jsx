@@ -57,6 +57,7 @@ export default function RoomPage({ djSession, setDjSession, children }) {
   const [currentTheme, setCurrentTheme] = useState(() => {
     return localStorage.getItem('room_bg_theme') || 'romantic';
   });
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const myName = auth.currentUser ? generateUserName(auth.currentUser.uid) : "You";
   const partnerName = djSession.partnerName || "Partner";
@@ -130,10 +131,47 @@ export default function RoomPage({ djSession, setDjSession, children }) {
           <ListeningDuo djName={djName} listenerName={listenerName} />
           {children}
         </div>
-        <div className="room-chat-section">
+
+        {/* Chat Backdrop for Mobile Sidebar */}
+        {isChatOpen && (
+          <div 
+            className="room-chat-backdrop" 
+            onClick={() => setIsChatOpen(false)}
+          />
+        )}
+
+        {/* Chat Section / Sidebar (90% width on mobile) */}
+        <div className={`room-chat-section ${isChatOpen ? 'mobile-open' : ''}`}>
+          <div className="mobile-chat-header">
+            <span className="mobile-chat-title">💬 Live Room Chat</span>
+            <button 
+              className="mobile-chat-close-btn" 
+              onClick={() => setIsChatOpen(false)}
+              aria-label="Close Chat"
+              title="Close Chat"
+            >
+              ✕
+            </button>
+          </div>
           <LiveChat roomId={djSession.roomId} />
         </div>
       </div>
+
+      {/* Floating Chat Icon Button */}
+      <button 
+        className={`floating-chat-btn ${isChatOpen ? 'active' : ''}`} 
+        onClick={() => setIsChatOpen(prev => !prev)}
+        title={isChatOpen ? "Close Chat" : "Open Live Chat"}
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          {isChatOpen ? (
+            <path d="M18 6L6 18M6 6l12 12" />
+          ) : (
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          )}
+        </svg>
+        <span className="floating-chat-label">Chat</span>
+      </button>
     </div>
   );
 }
