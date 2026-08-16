@@ -134,7 +134,7 @@ function VoiceNotePlayer({ audioUrl, onPlayStateChange }) {
   );
 }
 
-export default function LiveChat({ roomId, onSpeakingChange }) {
+export default function LiveChat({ roomId, onSpeakingChange, onCallStatusChange }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
@@ -331,6 +331,13 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
       onSpeakingChange(isDuckNeeded, duckRatio);
     }
   }, [isRecording, isPlayingVoiceNote, callStatus, isSpeaking, isCallDocSpeaking, onSpeakingChange]);
+
+  // Notify parent component when call status changes (e.g. 'incoming' or 'connected')
+  useEffect(() => {
+    if (onCallStatusChange) {
+      onCallStatusChange(callStatus);
+    }
+  }, [callStatus, onCallStatusChange]);
 
   // Clean up Voice Activity Detection (VAD) audio analyzer
   const stopSpeechDetection = () => {
@@ -930,7 +937,7 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
           <span className="active-dot"></span>
           <span className="active-call-label">
             🟢 Voice Call Active
-            {isSpeaking && <span className="ducking-badge">🔉 Music Auto-Ducked</span>}
+            {(isSpeaking || isCallDocSpeaking) && <span className="ducking-badge">⏸️ Music Auto-Paused</span>}
           </span>
           <button type="button" className="call-bar-mute-btn" onClick={toggleMuteMic}>
             {isMicMuted ? '🔇 Unmute' : '🎙️ Mute'}

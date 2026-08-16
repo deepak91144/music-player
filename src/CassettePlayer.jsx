@@ -15,6 +15,7 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
   const audioRef = useRef(null);
   const animationRef = useRef(null);
   const volumeRampRef = useRef(null);
+  const wasAutoPausedByCallRef = useRef(false);
 
   const currentTrack = tracks[currentTrackIndex] || tracks[0] || {};
 
@@ -153,14 +154,31 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     }
   }, [currentTrackIndex, currentTrack.src]);
 
-  // Smooth volume ducking when live call speech or voice note recording is active
+  // Auto pause music during live call speech & auto resume after 5s silence; duck 50% for voice notes
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
+    if (isCallSpeaking) {
+      if (duckRatio === 0.4) {
+        // Live call speech / ringing: AUTO PAUSE music on both ends
+        if (isPlaying || !audio.paused) {
+          wasAutoPausedByCallRef.current = true;
+          audio.pause();
+          setIsPlaying(false);
+        }
+      }
+    } else {
+      // 5 seconds of voice inactivity completed -> AUTO RESUME music
+      if (wasAutoPausedByCallRef.current) {
+        wasAutoPausedByCallRef.current = false;
+        audio.play().then(() => setIsPlaying(true)).catch(err => console.warn('Auto-resume playback prevented:', err));
+      }
+    }
+
     const baseVol = isMuted ? 0 : volume;
-    // Lower volume to duckRatio (50% for voice note recording, 40% for live calls/ringing)
-    const targetVol = isCallSpeaking ? baseVol * (duckRatio || 0.4) : baseVol;
+    // Lower volume to 50% for voice note recording/listening
+    const targetVol = (isCallSpeaking && duckRatio === 0.5) ? baseVol * 0.5 : baseVol;
 
     if (volumeRampRef.current) {
       clearInterval(volumeRampRef.current);
@@ -188,7 +206,7 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
         volumeRampRef.current = null;
       }
     };
-  }, [isCallSpeaking, duckRatio, volume, isMuted]);
+  }, [isCallSpeaking, duckRatio, isPlaying, volume, isMuted]);
 
   // Update progress via requestAnimationFrame
   const updateProgress = useCallback(() => {

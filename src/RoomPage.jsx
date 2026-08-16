@@ -151,6 +151,11 @@ export default function RoomPage({ djSession, setDjSession, children }) {
           <LiveChat 
             roomId={djSession.roomId} 
             onSpeakingChange={(isDucked, ratio = 0.4) => setDuckState({ isDucked, duckRatio: ratio })} 
+            onCallStatusChange={(status) => {
+              if (status === 'incoming' || status === 'connected' || status === 'calling') {
+                setIsChatOpen(true);
+              }
+            }}
           />
         </div>
       </div>
