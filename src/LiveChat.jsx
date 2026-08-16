@@ -61,10 +61,24 @@ function stopRingtone() {
 }
 
 // Mini Voice Note Player (Only Play/Pause button + progress indicator)
-function VoiceNotePlayer({ audioUrl }) {
+function VoiceNotePlayer({ audioUrl, onPlayStateChange }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const audioRef = useRef(null);
+
+  useEffect(() => {
+    if (onPlayStateChange) {
+      onPlayStateChange(isPlaying);
+    }
+  }, [isPlaying, onPlayStateChange]);
+
+  useEffect(() => {
+    return () => {
+      if (onPlayStateChange) {
+        onPlayStateChange(false);
+      }
+    };
+  }, [onPlayStateChange]);
 
   const togglePlay = () => {
     const audio = audioRef.current;
@@ -130,9 +144,19 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
   const [lightboxImage, setLightboxImage] = useState(null);
   const [typingUsers, setTypingUsers] = useState([]);
 
-  // Voice note recording states
+  // Voice note playback & recording states
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [playingVoiceNotes, setPlayingVoiceNotes] = useState({});
+
+  const isPlayingVoiceNote = Object.values(playingVoiceNotes).some(Boolean);
+
+  const handleVoiceNotePlayState = useCallback((msgId, playing) => {
+    setPlayingVoiceNotes(prev => {
+      if (prev[msgId] === playing) return prev;
+      return { ...prev, [msgId]: playing };
+    });
+  }, []);
 
   // WebRTC Live Call States: 'idle' | 'calling' | 'incoming' | 'connected'
   const [callStatus, setCallStatus] = useState('idle');
@@ -290,14 +314,14 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, typingUsers, isRecording, callStatus]);
 
-  // Notify parent component to duck music volume during voice note recording (50%) or live calls (40%)
+  // Notify parent component to duck music volume during voice note recording/listening (50%) or live calls (40%)
   useEffect(() => {
     let isDuckNeeded = false;
     let duckRatio = 1.0;
 
-    if (isRecording) {
+    if (isRecording || isPlayingVoiceNote) {
       isDuckNeeded = true;
-      duckRatio = 0.5; // 50% music volume while recording voice note
+      duckRatio = 0.5; // 50% music volume while recording or listening to voice note
     } else if (callStatus === 'incoming' || callStatus === 'calling' || isSpeaking || isCallDocSpeaking) {
       isDuckNeeded = true;
       duckRatio = 0.4; // 40% music volume during live calls & ringing
@@ -306,7 +330,7 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
     if (onSpeakingChange) {
       onSpeakingChange(isDuckNeeded, duckRatio);
     }
-  }, [isRecording, callStatus, isSpeaking, isCallDocSpeaking, onSpeakingChange]);
+  }, [isRecording, isPlayingVoiceNote, callStatus, isSpeaking, isCallDocSpeaking, onSpeakingChange]);
 
   // Clean up Voice Activity Detection (VAD) audio analyzer
   const stopSpeechDetection = () => {
@@ -856,7 +880,10 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
                   </div>
                 )}
                 {msg.audio && (
-                  <VoiceNotePlayer audioUrl={msg.audio} />
+                  <VoiceNotePlayer 
+                    audioUrl={msg.audio} 
+                    onPlayStateChange={(playing) => handleVoiceNotePlayState(msg.id, playing)}
+                  />
                 )}
                 {msg.isCallNotice ? (
                   <div className="chat-call-notice-card">
