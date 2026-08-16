@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import LiveChat from './LiveChat';
 import { db, auth, generateUserName } from './firebase';
@@ -18,35 +18,26 @@ const ListeningDuo = ({ djName, listenerName }) => {
       <div className="duo-character dj-side">
         <div className="character-avatar-box">
           <div className="headphones-graphic">🎧</div>
-          <div className="avatar-face dj-face">
-            <span className="face-expression">(•‿•)</span>
-          </div>
-          <span className="duo-badge dj-badge">DJ</span>
+          <div className="character-face dj-face"></div>
         </div>
+        <span className="duo-role-badge">🎧 DJ</span>
         <span className="duo-username">{djName}</span>
       </div>
 
-      {/* Musical Connection Soundwaves */}
-      <div className="duo-audio-bridge">
-        <span className="music-note n1">🎵</span>
-        <div className="connecting-equalizer">
-          <span className="eq-bar b1"></span>
-          <span className="eq-bar b2"></span>
-          <span className="eq-bar b3"></span>
-          <span className="eq-bar b4"></span>
-        </div>
-        <span className="music-note n2">🎶</span>
+      {/* Connection heart animation */}
+      <div className="duo-connection-heart">
+        <span className="heart-pulse">💖</span>
+        <span className="wave-ring wave1"></span>
+        <span className="wave-ring wave2"></span>
       </div>
 
       {/* Listener Character */}
       <div className="duo-character listener-side">
         <div className="character-avatar-box">
           <div className="headphones-graphic">🎧</div>
-          <div className="avatar-face listener-face">
-            <span className="face-expression">(◠‿◠)</span>
-          </div>
-          <span className="duo-badge listener-badge">LISTENER</span>
+          <div className="character-face listener-face"></div>
         </div>
+        <span className="duo-role-badge listener-badge">✨ Listener</span>
         <span className="duo-username">{listenerName}</span>
       </div>
     </div>
@@ -60,6 +51,18 @@ export default function RoomPage({ djSession, setDjSession, children }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [duckState, setDuckState] = useState({ isDucked: false, duckRatio: 1.0 });
+
+  const prevCallStatusRef = useRef('idle');
+
+  const handleCallStatusChange = useCallback((status) => {
+    // Only auto-open sidebar when call transitions into 'incoming' or 'calling'
+    if (status !== prevCallStatusRef.current) {
+      if (status === 'incoming' || status === 'calling') {
+        setIsChatOpen(true);
+      }
+      prevCallStatusRef.current = status;
+    }
+  }, []);
 
   const myName = auth.currentUser ? generateUserName(auth.currentUser.uid) : "You";
   const partnerName = djSession.partnerName || "Partner";
@@ -151,11 +154,7 @@ export default function RoomPage({ djSession, setDjSession, children }) {
           <LiveChat 
             roomId={djSession.roomId} 
             onSpeakingChange={(isDucked, ratio = 0.4) => setDuckState({ isDucked, duckRatio: ratio })} 
-            onCallStatusChange={(status) => {
-              if (status === 'incoming' || status === 'connected' || status === 'calling') {
-                setIsChatOpen(true);
-              }
-            }}
+            onCallStatusChange={handleCallStatusChange}
           />
         </div>
       </div>

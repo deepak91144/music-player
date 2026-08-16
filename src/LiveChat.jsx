@@ -333,9 +333,13 @@ export default function LiveChat({ roomId, onSpeakingChange, onCallStatusChange 
   }, [isRecording, isPlayingVoiceNote, callStatus, isSpeaking, isCallDocSpeaking, onSpeakingChange]);
 
   // Notify parent component when call status changes (e.g. 'incoming' or 'connected')
+  const prevStatusRef = useRef(callStatus);
   useEffect(() => {
-    if (onCallStatusChange) {
-      onCallStatusChange(callStatus);
+    if (callStatus !== prevStatusRef.current) {
+      prevStatusRef.current = callStatus;
+      if (onCallStatusChange) {
+        onCallStatusChange(callStatus);
+      }
     }
   }, [callStatus, onCallStatusChange]);
 
