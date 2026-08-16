@@ -4,7 +4,7 @@ import { db, signInAnonymousUser, generateUserName } from './firebase';
 import { LOCAL_TRACKS } from './jiosaavnService';
 import './CassettePlayer.css';
 
-export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTrackIndex, djSession, setDjSession, isCallSpeaking, duckRatio = 0.4, onOpenSearch }) {
+export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, setCurrentTrackIndex, djSession, setDjSession, isCallSpeaking, duckRatio = 0.4, onOpenSearch }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -93,6 +93,27 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     };
   }, [user, isPlaying, currentTrack, djSession]);
 
+  const updateMasterSession = useCallback((newIndex, newIsPlaying) => {
+    if (!djSession || !djSession.isMaster) return;
+    const idx = newIndex !== undefined ? newIndex : currentTrackIndex;
+    const targetTrack = tracks[idx] || currentTrack;
+
+    const sessionRef = doc(db, 'dj_sessions', djSession.id);
+    setDoc(sessionRef, {
+      currentTrackIndex: idx,
+      currentTrack: targetTrack,
+      isPlaying: newIsPlaying !== undefined ? newIsPlaying : isPlaying,
+      lastUpdated: Date.now()
+    }, { merge: true }).catch(err => console.error('Error updating master session:', err));
+  }, [djSession, currentTrackIndex, isPlaying, tracks, currentTrack]);
+
+  // Master sends track state updates to Firestore whenever track or room changes
+  useEffect(() => {
+    if (djSession && djSession.isMaster && currentTrack && currentTrack.title) {
+      updateMasterSession(currentTrackIndex, isPlaying);
+    }
+  }, [djSession?.isMaster, currentTrackIndex, djSession?.id]);
+
   // Master/Slave synchronization for listening sessions
   useEffect(() => {
     if (!djSession) return;
@@ -103,9 +124,25 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
       const data = snapshot.data();
 
       if (!djSession.isMaster) {
-        if (data.currentTrackIndex !== undefined && data.currentTrackIndex !== currentTrackIndex) {
+        if (data.currentTrack) {
+          const masterTrack = data.currentTrack;
+          const foundIdx = tracks.findIndex(t => (t.id && masterTrack.id && t.id === masterTrack.id) || (t.title && masterTrack.title && t.title === masterTrack.title));
+
+          if (foundIdx !== -1) {
+            if (foundIdx !== currentTrackIndex) {
+              setCurrentTrackIndex(foundIdx);
+            }
+          } else if (setTracks) {
+            setTracks(prev => {
+              const updated = [...prev, masterTrack];
+              setCurrentTrackIndex(updated.length - 1);
+              return updated;
+            });
+          }
+        } else if (data.currentTrackIndex !== undefined && data.currentTrackIndex !== currentTrackIndex) {
           setCurrentTrackIndex(data.currentTrackIndex);
         }
+
         if (data.isPlaying !== undefined && data.isPlaying !== isPlaying) {
           if (data.isPlaying) {
             playMedia();
@@ -117,17 +154,7 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     });
 
     return () => unsubscribe();
-  }, [djSession, currentTrackIndex, isPlaying, setCurrentTrackIndex]);
-
-  const updateMasterSession = useCallback((newIndex, newIsPlaying) => {
-    if (!djSession || !djSession.isMaster) return;
-    const sessionRef = doc(db, 'dj_sessions', djSession.id);
-    setDoc(sessionRef, {
-      currentTrackIndex: newIndex !== undefined ? newIndex : currentTrackIndex,
-      isPlaying: newIsPlaying !== undefined ? newIsPlaying : isPlaying,
-      lastUpdated: Date.now()
-    }, { merge: true }).catch(err => console.error('Error updating master session:', err));
-  }, [djSession, currentTrackIndex, isPlaying]);
+  }, [djSession, currentTrackIndex, isPlaying, tracks, setCurrentTrackIndex, setTracks]);
 
   const handleNext = useCallback(() => {
     if (!tracks || tracks.length <= 1) return;

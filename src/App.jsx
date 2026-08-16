@@ -96,6 +96,7 @@ export default function App() {
   const renderPlayer = () => (
     <CassettePlayer
       tracks={tracks}
+      setTracks={setTracks}
       currentTrackIndex={currentTrackIndex}
       setCurrentTrackIndex={setCurrentTrackIndex}
       djSession={djSession}
