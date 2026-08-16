@@ -840,10 +840,8 @@
 
   .room-bottom-actions .floating-theme-btn {
     position: relative !important;
-    bottom: auto !important;
-    left: auto !important;
-    right: auto !important;
-    top: auto !important;
+    top: 0 !important;
+    transform: translateY(2px) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -868,10 +866,8 @@
 
   .room-bottom-actions .floating-chat-btn {
     position: relative !important;
-    bottom: auto !important;
-    left: auto !important;
-    right: auto !important;
-    top: auto !important;
+    top: 0 !important;
+    transform: none !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
