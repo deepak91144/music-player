@@ -159,8 +159,8 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     if (!audio) return;
 
     const baseVol = isMuted ? 0 : volume;
-    // Lower volume to 20% when someone is speaking over live call
-    const targetVol = isCallSpeaking ? baseVol * 0.2 : baseVol;
+    // Lower volume to 40% when someone is speaking or call is ringing over live call
+    const targetVol = isCallSpeaking ? baseVol * 0.4 : baseVol;
 
     if (volumeRampRef.current) {
       clearInterval(volumeRampRef.current);

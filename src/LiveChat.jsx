@@ -264,9 +264,9 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
         setCallStatus('connected');
       }
 
-      // Sync speech ducking status from either user in the room
+      // Sync speech ducking status from either user in the room (5s silence buffer)
       const now = Date.now();
-      if (data.isSpeaking && now - (data.lastSpeakingTime || 0) < 3500) {
+      if (data.isSpeaking && now - (data.lastSpeakingTime || 0) < 7000) {
         setIsCallDocSpeaking(true);
       } else {
         setIsCallDocSpeaking(false);
@@ -396,13 +396,13 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
             setIsSpeaking(true);
           }
         } else {
-          // Keep ducking active for ~800ms during natural speech pauses
+          // Keep music volume ducked for 5 seconds after voice inactivity before restoring to normal
           if (isSpeakingRef.current && !silenceTimeoutRef.current) {
             silenceTimeoutRef.current = setTimeout(() => {
               isSpeakingRef.current = false;
               setIsSpeaking(false);
               silenceTimeoutRef.current = null;
-            }, 800);
+            }, 5000);
           }
         }
 
