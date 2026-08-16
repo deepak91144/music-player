@@ -108,7 +108,7 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
     setDoc(sessionRef, {
       currentTrackIndex: idx,
       currentTrack: targetTrack,
-      isPlaying: newIsPlaying !== undefined ? newIsPlaying : isPlaying,
+      isPlaying: newIsPlaying !== undefined ? newIsPlaying : true,
       lastUpdated: Date.now()
     }, { merge: true }).catch(err => console.error('Error updating master session:', err));
   }, [djSession, currentTrackIndex, isPlaying, tracks, currentTrack]);
@@ -116,11 +116,68 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
   // Master sends track state updates to Firestore whenever track or room changes
   useEffect(() => {
     if (djSession && djSession.isMaster && currentTrack && currentTrack.title) {
-      updateMasterSession(currentTrackIndex, isPlaying);
+      updateMasterSession(currentTrackIndex, true);
     }
   }, [djSession?.isMaster, currentTrackIndex, djSession?.id]);
 
-  // Listener Sync Effect (Slave mode) - Forces initial track playback on room entrance
+  const playMedia = useCallback(() => {
+    if (currentTrack.ytId && ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
+      try {
+        if (audioRef.current) audioRef.current.pause();
+        ytPlayerRef.current.unMute();
+        ytPlayerRef.current.setVolume(100);
+        ytPlayerRef.current.playVideo();
+        setIsPlaying(true);
+      } catch (_) {}
+    } else if (audioRef.current) {
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
+        try { ytPlayerRef.current.pauseVideo(); } catch (_) {}
+      }
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+    }
+  }, [currentTrack]);
+
+  const forcePlayTrack = useCallback((track) => {
+    if (!track) return;
+    if (track.ytId) {
+      const videoId = track.ytId;
+      const tryPlayYt = () => {
+        if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
+          try {
+            ytPlayerRef.current.loadVideoById({ videoId: videoId, startSeconds: 0 });
+            try { ytPlayerRef.current.seekTo(0, true); } catch (_) {}
+            ytPlayerRef.current.unMute();
+            ytPlayerRef.current.setVolume(100);
+            ytPlayerRef.current.playVideo();
+            setIsPlaying(true);
+            setIsLoading(false);
+            return true;
+          } catch (_) {}
+        }
+        return false;
+      };
+
+      if (!tryPlayYt()) {
+        let attempts = 0;
+        const timer = setInterval(() => {
+          attempts++;
+          if (tryPlayYt() || attempts > 20) {
+            clearInterval(timer);
+          }
+        }, 200);
+      }
+    } else if (track.src && audioRef.current) {
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
+        try { ytPlayerRef.current.pauseVideo(); } catch (_) {}
+      }
+      audioRef.current.src = track.src;
+      audioRef.current.load();
+      try { audioRef.current.currentTime = 0; } catch (_) {}
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+    }
+  }, []);
+
+  // Listener Sync Effect (Slave mode) - Guarantees initial room track plays
   useEffect(() => {
     if (!djSession || djSession.isMaster) return;
 
@@ -152,19 +209,19 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
             return updated;
           });
         }
-      }
 
-      if (masterIsPlaying) {
-        setIsPlaying(true);
-        setTimeout(() => playMedia(), 50);
-      } else {
-        setIsPlaying(false);
-        pauseMedia();
+        if (masterIsPlaying) {
+          setIsPlaying(true);
+          forcePlayTrack(masterTrack);
+        } else {
+          setIsPlaying(false);
+          pauseMedia();
+        }
       }
     });
 
     return () => unsubscribe();
-  }, [djSession?.id, djSession?.isMaster, tracks, currentTrackIndex, setCurrentTrackIndex, setTracks]);
+  }, [djSession?.id, djSession?.isMaster, tracks, currentTrackIndex, setCurrentTrackIndex, setTracks, forcePlayTrack]);
 
   const handleNext = useCallback(() => {
     if (!tracks || tracks.length <= 1) return;
@@ -183,23 +240,6 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
       updateMasterSession(prevIndex, true);
     }
   }, [tracks, currentTrackIndex, setCurrentTrackIndex, djSession, updateMasterSession]);
-
-  const playMedia = () => {
-    if (currentTrack.ytId && ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
-      try {
-        if (audioRef.current) audioRef.current.pause();
-        ytPlayerRef.current.unMute();
-        ytPlayerRef.current.setVolume(100);
-        ytPlayerRef.current.playVideo();
-        setIsPlaying(true);
-      } catch (_) {}
-    } else if (audioRef.current) {
-      if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
-        try { ytPlayerRef.current.pauseVideo(); } catch (_) {}
-      }
-      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-    }
-  };
 
   const pauseMedia = () => {
     if (audioRef.current) {
