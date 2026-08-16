@@ -55,7 +55,11 @@ export default function LiveFeed() {
     return () => clearInterval(interval);
   }, [rawUsers]);
 
-  const sendReaction = async (targetUser, emoji) => {
+  const sendReaction = async (e, targetUser, emoji) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     if (!auth.currentUser) return;
     try {
       if (emoji === '🎧') {
@@ -113,11 +117,10 @@ export default function LiveFeed() {
             </div>
             
             {auth.currentUser?.uid !== user.userId && (
-              <div className="reaction-menu">
-                <button onClick={() => sendReaction(user, '🔥')}>🔥</button>
-                <button onClick={() => sendReaction(user, '❤️')}>❤️</button>
-
-                <button onClick={() => sendReaction(user, '🎧')} title="Listen Together">🎧</button>
+              <div className="reaction-menu" onClick={(e) => e.stopPropagation()}>
+                <button type="button" onClick={(e) => sendReaction(e, user, '🔥')} title="Send Fire Reaction">🔥</button>
+                <button type="button" onClick={(e) => sendReaction(e, user, '❤️')} title="Send Heart Reaction">❤️</button>
+                <button type="button" onClick={(e) => sendReaction(e, user, '🎧')} title="Listen Together">🎧</button>
               </div>
             )}
 

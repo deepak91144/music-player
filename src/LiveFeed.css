@@ -168,42 +168,36 @@
 
 /* Reaction Menu Styles */
 .reaction-menu {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%) translateX(10px);
   display: flex;
-  gap: 5px;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(10px);
-  padding: 5px 8px;
-  border-radius: 20px;
-  opacity: 0;
-  pointer-events: none;
-  transition: all 0.2s ease;
-}
-
-.live-user-card:hover .reaction-menu {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(-50%) translateX(0);
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  flex-shrink: 0;
+  z-index: 2;
 }
 
 .reaction-menu button {
-  background: none;
-  border: none;
-  font-size: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  font-size: 14px;
   cursor: pointer;
-  padding: 2px 4px;
-  transition: transform 0.2s;
+  padding: 4px 8px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
 .reaction-menu button:hover {
-  transform: scale(1.3);
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.15);
 }
 
-.live-user-card:hover .equalizer {
-  opacity: 0;
+.live-user-card .equalizer {
+  margin-left: 6px;
 }
 
 /* Request Sent Toast Notification */
