@@ -158,8 +158,7 @@ export default function App() {
             </p>
           </div>
 
-          {/* Floating Search Action (Commented Out) */}
-          {/* 
+          {/* Floating Search Action */}
           <div className="player-top-actions">
             <button 
               className="floating-search-btn"
@@ -173,7 +172,6 @@ export default function App() {
               <span>Search Online Songs</span>
             </button>
           </div>
-          */}
 
           {renderPlayer()}
         </div>

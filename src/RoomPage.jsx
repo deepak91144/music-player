@@ -124,7 +124,6 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
         </div>
 
         <div className="room-header-actions">
-          {/* 
           {onOpenSearch && (
             <button className="room-search-btn" onClick={onOpenSearch} title="Search Online Songs">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -134,7 +133,6 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
               <span>Search Songs</span>
             </button>
           )}
-          */}
           <button className="leave-room-btn" onClick={() => setDjSession(null)}>
             Leave Session
           </button>

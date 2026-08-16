@@ -14,11 +14,37 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
   const [user, setUser] = useState(null);
 
   const audioRef = useRef(null);
+  const ytPlayerRef = useRef(null);
+  const ytContainerRef = useRef(null);
+  const isYtApiReadyRef = useRef(false);
+  const hasSeekedZeroRef = useRef(false);
   const animationRef = useRef(null);
   const volumeRampRef = useRef(null);
-  const wasAutoPausedByCallRef = useRef(false);
 
   const currentTrack = tracks[currentTrackIndex] || tracks[0] || {};
+
+  // Load YouTube iFrame API script on mount
+  useEffect(() => {
+    if (window.YT && window.YT.Player) {
+      isYtApiReadyRef.current = true;
+      return;
+    }
+
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    if (firstScriptTag && firstScriptTag.parentNode) {
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    } else {
+      document.head.appendChild(tag);
+    }
+
+    const prevReady = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      if (prevReady) prevReady();
+      isYtApiReadyRef.current = true;
+    };
+  }, []);
 
   // Sign in anonymously on mount
   useEffect(() => {
@@ -48,331 +74,238 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
         songTitle: currentTrack.title,
         artist: currentTrack.artist || 'Artist',
         cover: currentTrack.cover || '',
-        timestamp: Date.now(),
-        playbackTime: audioRef.current?.currentTime || 0,
-        isPlaying: true
-      }).catch(err => console.warn("Firestore error:", err));
+        updatedAt: Date.now()
+      }).catch(err => console.error('Error syncing now_playing:', err));
     } else {
-      setDoc(userRef, {
-        userId: user.uid,
-        displayName: generateUserName(user.uid),
-        songTitle: currentTrack.title,
-        artist: currentTrack.artist || 'Artist',
-        cover: currentTrack.cover || '',
-        timestamp: Date.now(),
-        playbackTime: audioRef.current?.currentTime || 0,
-        isPlaying: false
-      }).catch(() => {});
+      deleteDoc(userRef).catch(err => console.error('Error deleting now_playing:', err));
     }
+  }, [user, isPlaying, currentTrack, djSession]);
 
-    return () => {
-      deleteDoc(userRef).catch(() => {});
-    };
-  }, [isPlaying, currentTrack, user, djSession]);
-
-  // Slave Mode: Listen to DJ's state
+  // Master/Slave synchronization for listening sessions
   useEffect(() => {
-    if (!djSession || djSession.isMaster) return;
-    
-    const unsubscribe = onSnapshot(doc(db, 'now_playing', djSession.id), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        
-        // Match Track
-        const trackIndex = tracks.findIndex(t => t.title === data.songTitle);
-        if (trackIndex !== -1 && trackIndex !== currentTrackIndex) {
-           if (audioRef.current) {
-             audioRef.current.pause();
-             try { audioRef.current.currentTime = 0; } catch (_) {}
-           }
-           setCurrentTrackIndex(trackIndex);
-           return;
-        }
-        
-        const audio = audioRef.current;
-        if (audio) {
-          if (Math.abs(audio.currentTime - data.playbackTime) > 2.0) {
-             audio.currentTime = data.playbackTime;
-          }
+    if (!djSession) return;
 
-          if (data.isPlaying && audio.paused) {
-            audio.play().then(() => setIsPlaying(true)).catch(()=>{});
-          } else if (!data.isPlaying && !audio.paused) {
-            audio.pause();
-            setIsPlaying(false);
+    const sessionRef = doc(db, 'dj_sessions', djSession.id);
+    const unsubscribe = onSnapshot(sessionRef, (snapshot) => {
+      if (!snapshot.exists()) return;
+      const data = snapshot.data();
+
+      if (!djSession.isMaster) {
+        if (data.currentTrackIndex !== undefined && data.currentTrackIndex !== currentTrackIndex) {
+          setCurrentTrackIndex(data.currentTrackIndex);
+        }
+        if (data.isPlaying !== undefined && data.isPlaying !== isPlaying) {
+          if (data.isPlaying) {
+            playMedia();
+          } else {
+            pauseMedia();
           }
         }
       }
     });
+
     return () => unsubscribe();
-  }, [djSession, currentTrackIndex, tracks, setCurrentTrackIndex]);
+  }, [djSession, currentTrackIndex, isPlaying, setCurrentTrackIndex]);
 
-  // Master Heartbeat: Sync perfectly every 5 seconds
-  useEffect(() => {
-    if (!user || !isPlaying || !currentTrack.title) return;
-    if (djSession && !djSession.isMaster) return;
-    
-    const interval = setInterval(() => {
-      setDoc(doc(db, 'now_playing', user.uid), {
-        userId: user.uid,
-        displayName: generateUserName(user.uid),
-        songTitle: currentTrack.title,
-        artist: currentTrack.artist || 'Artist',
-        cover: currentTrack.cover || '',
-        timestamp: Date.now(),
-        playbackTime: audioRef.current?.currentTime || 0,
-        isPlaying: true
-      }, { merge: true }).catch(() => {});
-    }, 5000);
-    
-    return () => clearInterval(interval);
-  }, [user, djSession, isPlaying, currentTrack]);
+  const updateMasterSession = useCallback((newIndex, newIsPlaying) => {
+    if (!djSession || !djSession.isMaster) return;
+    const sessionRef = doc(db, 'dj_sessions', djSession.id);
+    setDoc(sessionRef, {
+      currentTrackIndex: newIndex !== undefined ? newIndex : currentTrackIndex,
+      isPlaying: newIsPlaying !== undefined ? newIsPlaying : isPlaying,
+      lastUpdated: Date.now()
+    }, { merge: true }).catch(err => console.error('Error updating master session:', err));
+  }, [djSession, currentTrackIndex, isPlaying]);
 
-  // Create / update audio element on track change & auto-play from beginning (0:00)
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !currentTrack.src) return;
+  const getRandomNextIndex = useCallback(() => {
+    if (!tracks || tracks.length <= 1) return 0;
+    let nextIndex;
+    do {
+      nextIndex = Math.floor(Math.random() * tracks.length);
+    } while (nextIndex === currentTrackIndex);
+    return nextIndex;
+  }, [tracks, currentTrackIndex]);
 
-    audio.pause();
-    setCurrentTime(0);
-    setDuration(0);
-    
-    audio.src = currentTrack.src;
-    audio.load();
+  const handleNext = useCallback(() => {
+    pauseMedia();
+    const nextIndex = getRandomNextIndex();
+    setCurrentTrackIndex(nextIndex);
+    if (djSession && djSession.isMaster) {
+      updateMasterSession(nextIndex, true);
+    }
+  }, [getRandomNextIndex, setCurrentTrackIndex, djSession, updateMasterSession]);
 
-    const resetTimeToZero = () => {
+  const handlePrev = useCallback(() => {
+    pauseMedia();
+    if (!tracks || tracks.length <= 1) return;
+    const prevIndex = (currentTrackIndex - 1 + tracks.length) % tracks.length;
+    setCurrentTrackIndex(prevIndex);
+    if (djSession && djSession.isMaster) {
+      updateMasterSession(prevIndex, true);
+    }
+  }, [tracks, currentTrackIndex, setCurrentTrackIndex, djSession, updateMasterSession]);
+
+  const playMedia = () => {
+    if (currentTrack.ytId && ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
       try {
-        audio.currentTime = 0;
-      } catch (_) {}
-    };
-
-    audio.addEventListener('loadedmetadata', resetTimeToZero, { once: true });
-    audio.addEventListener('canplay', resetTimeToZero, { once: true });
-    audio.addEventListener('play', resetTimeToZero, { once: true });
-    audio.addEventListener('playing', resetTimeToZero, { once: true });
-
-    // Always auto-play from 0:00 when a new track is loaded
-    const playPromise = audio.play();
-    if (playPromise) {
-      playPromise.then(() => {
-        try {
-          audio.currentTime = 0;
-        } catch (_) {}
+        if (audioRef.current) audioRef.current.pause();
+        ytPlayerRef.current.playVideo();
         setIsPlaying(true);
-      }).catch((err) => {
-        console.warn('Auto-play required user interaction or failed:', err);
-        setIsPlaying(false);
-      });
-    }
-
-    return () => {
-      audio.removeEventListener('loadedmetadata', resetTimeToZero);
-      audio.removeEventListener('canplay', resetTimeToZero);
-      audio.removeEventListener('play', resetTimeToZero);
-      audio.removeEventListener('playing', resetTimeToZero);
-    };
-  }, [currentTrackIndex, currentTrack.src]);
-
-  // Auto pause music during live call speech & auto resume after 5s silence; duck 50% for voice notes
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (isCallSpeaking) {
-      if (duckRatio === 0.4) {
-        // Live call speech / ringing: AUTO PAUSE music on both ends
-        if (isPlaying || !audio.paused) {
-          wasAutoPausedByCallRef.current = true;
-          audio.pause();
-          setIsPlaying(false);
-        }
-      }
-    } else {
-      // 5 seconds of voice inactivity completed -> AUTO RESUME music
-      if (wasAutoPausedByCallRef.current) {
-        wasAutoPausedByCallRef.current = false;
-        audio.play().then(() => setIsPlaying(true)).catch(err => console.warn('Auto-resume playback prevented:', err));
-      }
-    }
-
-    const baseVol = isMuted ? 0 : volume;
-    // Lower volume to 50% for voice note recording/listening
-    const targetVol = (isCallSpeaking && duckRatio === 0.5) ? baseVol * 0.5 : baseVol;
-
-    if (volumeRampRef.current) {
-      clearInterval(volumeRampRef.current);
-    }
-
-    // Smoothly interpolate current volume to target volume
-    volumeRampRef.current = setInterval(() => {
-      if (!audioRef.current) return;
-      const currentVol = audioRef.current.volume;
-      const diff = targetVol - currentVol;
-
-      if (Math.abs(diff) < 0.008) {
-        audioRef.current.volume = targetVol;
-        clearInterval(volumeRampRef.current);
-        volumeRampRef.current = null;
-      } else {
-        const step = diff > 0 ? 0.035 : 0.07;
-        audioRef.current.volume = Math.max(0, Math.min(1, currentVol + diff * step));
-      }
-    }, 20);
-
-    return () => {
-      if (volumeRampRef.current) {
-        clearInterval(volumeRampRef.current);
-        volumeRampRef.current = null;
-      }
-    };
-  }, [isCallSpeaking, duckRatio, isPlaying, volume, isMuted]);
-
-  // Update progress via requestAnimationFrame
-  const updateProgress = useCallback(() => {
-    const audio = audioRef.current;
-    if (audio && !audio.paused) {
-      setCurrentTime(audio.currentTime);
-      animationRef.current = requestAnimationFrame(updateProgress);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isPlaying) {
-      animationRef.current = requestAnimationFrame(updateProgress);
-    } else {
-      cancelAnimationFrame(animationRef.current);
-    }
-    return () => cancelAnimationFrame(animationRef.current);
-  }, [isPlaying, updateProgress]);
-
-  // Audio event handlers
-  const handleLoadedMetadata = () => {
-    if (audioRef.current) {
-      try {
-        audioRef.current.currentTime = 0;
       } catch (_) {}
-      setDuration(audioRef.current.duration || 0);
+    } else if (audioRef.current) {
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
+        try { ytPlayerRef.current.pauseVideo(); } catch (_) {}
+      }
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
     }
-    setCurrentTime(0);
   };
 
-  const handleEnded = () => {
-    handleNext();
+  const pauseMedia = () => {
+    if (audioRef.current) {
+      try { audioRef.current.pause(); } catch (_) {}
+    }
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
+      try { ytPlayerRef.current.pauseVideo(); } catch (_) {}
+    }
+    setIsPlaying(false);
+  };
+
+  // Handle Track Changes (Zero out timestamp)
+  useEffect(() => {
+    setIsLoading(true);
+    setCurrentTime(0);
+    setDuration(currentTrack.duration || 240);
+    hasSeekedZeroRef.current = false;
+
+    // Stop HTML5 audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      try { audioRef.current.currentTime = 0; } catch (_) {}
+    }
+
+    // Handle YouTube track (Enforce startSeconds: 0)
+    if (currentTrack.ytId) {
+      const videoId = currentTrack.ytId;
+
+      const initOrLoadYt = () => {
+        if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
+          ytPlayerRef.current.loadVideoById({ videoId: videoId, startSeconds: 0 });
+          try { ytPlayerRef.current.seekTo(0, true); } catch (_) {}
+          ytPlayerRef.current.playVideo();
+          setIsPlaying(true);
+          setIsLoading(false);
+        } else if (window.YT && window.YT.Player && ytContainerRef.current) {
+          ytPlayerRef.current = new window.YT.Player(ytContainerRef.current, {
+            height: '1',
+            width: '1',
+            videoId: videoId,
+            playerVars: {
+              autoplay: 1,
+              controls: 0,
+              disablekb: 1,
+              fs: 0,
+              rel: 0,
+              modestbranding: 1,
+              start: 0
+            },
+            events: {
+              onReady: (evt) => {
+                try { evt.target.seekTo(0, true); } catch (_) {}
+                evt.target.playVideo();
+                setIsPlaying(true);
+                setIsLoading(false);
+              },
+              onStateChange: (evt) => {
+                if (evt.data === window.YT.PlayerState.PLAYING) {
+                  if (!hasSeekedZeroRef.current) {
+                    hasSeekedZeroRef.current = true;
+                    try { evt.target.seekTo(0, true); } catch (_) {}
+                  }
+                  setIsPlaying(true);
+                  setIsLoading(false);
+                } else if (evt.data === window.YT.PlayerState.ENDED) {
+                  handleNext();
+                } else if (evt.data === window.YT.PlayerState.PAUSED) {
+                  setIsPlaying(false);
+                }
+              }
+            }
+          });
+        }
+      };
+
+      if (window.YT && window.YT.Player) {
+        initOrLoadYt();
+      } else {
+        const timer = setInterval(() => {
+          if (window.YT && window.YT.Player) {
+            clearInterval(timer);
+            initOrLoadYt();
+          }
+        }, 200);
+        return () => clearInterval(timer);
+      }
+    } else if (currentTrack.src && audioRef.current) {
+      // Handle local .mp3 track
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
+        try { ytPlayerRef.current.pauseVideo(); } catch (_) {}
+      }
+      audioRef.current.src = currentTrack.src;
+      audioRef.current.load();
+      try { audioRef.current.currentTime = 0; } catch (_) {}
+
+      const playPromise = audioRef.current.play();
+      if (playPromise) {
+        playPromise.then(() => {
+          try { audioRef.current.currentTime = 0; } catch (_) {}
+          setIsPlaying(true);
+          setIsLoading(false);
+        }).catch(() => {
+          setIsPlaying(false);
+          setIsLoading(false);
+        });
+      }
+    } else {
+      setIsLoading(false);
+    }
+  }, [currentTrackIndex, currentTrack.src, currentTrack.ytId]);
+
+  // Audio events for HTML5 audio
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      try { audioRef.current.currentTime = 0; } catch (_) {}
+      setDuration(audioRef.current.duration || currentTrack.duration || 240);
+    }
+    setIsLoading(false);
   };
 
   const handleAudioError = () => {
     setIsLoading(false);
-    console.error('Audio failed to load:', currentTrack.src);
-
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    // Try lower bitrate fallback (_160.mp4 / _96.mp4) for the SAME online track
-    if (currentTrack.src && currentTrack.src.includes('_320.')) {
-      const fallbackSrc = currentTrack.src.replace('_320.', '_160.');
-      console.warn(`320kbps stream failed. Trying 160kbps fallback for ${currentTrack.title}`);
-      audio.src = fallbackSrc;
-      audio.load();
-      audio.play().then(() => setIsPlaying(true)).catch(() => handleNext());
-      return;
-    }
-
-    if (currentTrack.src && currentTrack.src.includes('_160.')) {
-      const fallbackSrc = currentTrack.src.replace('_160.', '_96.');
-      console.warn(`160kbps stream failed. Trying 96kbps fallback for ${currentTrack.title}`);
-      audio.src = fallbackSrc;
-      audio.load();
-      audio.play().then(() => setIsPlaying(true)).catch(() => handleNext());
-      return;
-    }
-
     handleNext();
   };
 
-  // Controls
-  const togglePlay = async () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
+  const togglePlay = () => {
     if (isPlaying) {
-      audio.pause();
-      setIsPlaying(false);
+      pauseMedia();
+      if (djSession && djSession.isMaster) {
+        updateMasterSession(currentTrackIndex, false);
+      }
     } else {
-      try {
-        await audio.play();
-        setIsPlaying(true);
-      } catch (err) {
-        console.error('Playback failed:', err);
-        setIsPlaying(false);
+      playMedia();
+      if (djSession && djSession.isMaster) {
+        updateMasterSession(currentTrackIndex, true);
       }
     }
   };
 
-  const playedIndicesRef = useRef([]);
-
-  // Get a random next track index that avoids repeating recent tracks
-  const getRandomNextIndex = useCallback(() => {
-    if (!tracks || tracks.length <= 1) return 0;
-    
-    const available = [];
-    for (let i = 0; i < tracks.length; i++) {
-      if (i !== currentTrackIndex && !playedIndicesRef.current.includes(i)) {
-        available.push(i);
-      }
-    }
-    
-    if (available.length === 0) {
-      playedIndicesRef.current = [currentTrackIndex];
-      for (let i = 0; i < tracks.length; i++) {
-        if (i !== currentTrackIndex) available.push(i);
-      }
-    }
-
-    const randomIndex = available[Math.floor(Math.random() * available.length)];
-    playedIndicesRef.current.push(randomIndex);
-    if (playedIndicesRef.current.length > Math.min(tracks.length - 1, 15)) {
-      playedIndicesRef.current.shift();
-    }
-    return randomIndex;
-  }, [tracks, currentTrackIndex]);
-
-  const handlePrev = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      try { audioRef.current.currentTime = 0; } catch (_) {}
-    }
-    if (currentTime > 3) {
-      setCurrentTime(0);
-      if (user && isPlaying && (!djSession || djSession.isMaster)) {
-        setDoc(doc(db, 'now_playing', user.uid), {
-          userId: user.uid,
-          displayName: generateUserName(user.uid),
-          songTitle: currentTrack.title,
-          artist: currentTrack.artist || 'Artist',
-          cover: currentTrack.cover || '',
-          timestamp: Date.now(),
-          playbackTime: 0,
-          isPlaying: true
-        }, { merge: true }).catch(()=>{});
-      }
-    } else {
-      const prevIndex = currentTrackIndex > 0 ? currentTrackIndex - 1 : tracks.length - 1;
-      setCurrentTrackIndex(prevIndex);
-    }
-  }, [currentTrackIndex, tracks ? tracks.length : 0, setCurrentTrackIndex, user, isPlaying, djSession, currentTrack, currentTime]);
-
-  const handleNext = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      try { audioRef.current.currentTime = 0; } catch (_) {}
-    }
-    const nextIndex = getRandomNextIndex();
-    setCurrentTrackIndex(nextIndex);
-  }, [getRandomNextIndex, setCurrentTrackIndex]);
-
   return (
     <div className="modern-player-wrapper">
-      {/* Hidden audio element */}
+      {/* Hidden YouTube Container */}
+      <div style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+        <div ref={ytContainerRef} id="yt-player-container" />
+      </div>
+
+      {/* Hidden HTML5 audio element */}
       <audio
         ref={audioRef}
         preload="auto"
@@ -382,7 +315,7 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
         onPlaying={() => setIsLoading(false)}
         onWaiting={() => setIsLoading(true)}
         onPause={() => setIsLoading(false)}
-        onEnded={handleEnded}
+        onEnded={handleNext}
         onError={handleAudioError}
       />
       
@@ -392,7 +325,7 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
           <div className="player-title">{isLoading ? 'Loading...' : (currentTrack.title || 'Music Track')}</div>
         </div>
 
-        {/* Playback Controls Below (No timestamp) */}
+        {/* Playback Controls Below */}
         <div className="player-controls">
           <button className="player-btn" onClick={handlePrev} title="Previous">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
@@ -414,7 +347,6 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
           <button className="player-btn" onClick={handleNext} title="Next">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
           </button>
-          {/* 
           {onOpenSearch && (
             <button className="player-btn search-player-btn" onClick={onOpenSearch} title="Search Online Songs">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -423,7 +355,6 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
               </svg>
             </button>
           )}
-          */}
         </div>
       </div>
     </div>
