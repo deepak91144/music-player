@@ -15,6 +15,143 @@
   position: relative;
 }
 
+/* ==================== */
+/* CENTERED INCOMING CALL MODAL & RINGTONE WAVES */
+/* ==================== */
+.incoming-call-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeInCallModal 0.3s ease;
+}
+
+@keyframes fadeInCallModal {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.incoming-call-modal {
+  background: rgba(20, 20, 30, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8), 0 0 40px rgba(34, 197, 94, 0.25);
+  border-radius: 28px;
+  padding: 36px 32px;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: #ffffff;
+}
+
+.incoming-ring-waves {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.incoming-avatar {
+  font-size: 34px;
+  z-index: 3;
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.5);
+}
+
+.wave {
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 2px solid rgba(34, 197, 94, 0.6);
+  animation: ringWave 1.8s infinite ease-out;
+}
+
+.wave2 {
+  animation-delay: 0.6s;
+}
+
+@keyframes ringWave {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.incoming-call-modal h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.incoming-caller-name {
+  margin: 0 0 28px 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.incoming-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.modal-answer-btn {
+  flex: 1;
+  background: #10b981;
+  border: none;
+  color: #ffffff;
+  padding: 12px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+  transition: all 0.2s ease;
+}
+
+.modal-answer-btn:hover {
+  background: #059669;
+  transform: translateY(-2px);
+}
+
+.modal-decline-btn {
+  flex: 1;
+  background: #ef4444;
+  border: none;
+  color: #ffffff;
+  padding: 12px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+  transition: all 0.2s ease;
+}
+
+.modal-decline-btn:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
+}
+
+/* Chat Header */
 .chat-header {
   padding: 12px 16px;
   background: rgba(0, 0, 0, 0.15);
@@ -79,48 +216,6 @@
 @keyframes callPulse {
   from { opacity: 0.3; transform: scale(0.8); }
   to { opacity: 1; transform: scale(1.2); }
-}
-
-.chat-incoming-call {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: #4ade80;
-  font-weight: 700;
-}
-
-.incoming-label {
-  margin-right: 4px;
-}
-
-.chat-answer-btn,
-.chat-decline-btn {
-  border: none;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-
-.chat-answer-btn {
-  background: #10b981;
-  color: #ffffff;
-}
-
-.chat-answer-btn:hover {
-  transform: scale(1.05);
-}
-
-.chat-decline-btn {
-  background: #ef4444;
-  color: #ffffff;
-}
-
-.chat-decline-btn:hover {
-  transform: scale(1.05);
 }
 
 .chat-active-call {

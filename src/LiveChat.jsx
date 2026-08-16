@@ -9,6 +9,57 @@ const RTC_CONFIG = {
   ]
 };
 
+// Web Audio API Ringtone Synthesizer
+let ringtoneAudioCtx = null;
+let ringtoneInterval = null;
+
+function startRingtone() {
+  stopRingtone();
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    ringtoneAudioCtx = new AudioContext();
+
+    const playRingPattern = () => {
+      if (!ringtoneAudioCtx || ringtoneAudioCtx.state === 'closed') return;
+      const now = ringtoneAudioCtx.currentTime;
+
+      // US/UK Standard Phone Ring Frequencies (440Hz + 480Hz)
+      [440, 480].forEach(freq => {
+        const osc = ringtoneAudioCtx.createOscillator();
+        const gain = ringtoneAudioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.setValueAtTime(0.18, now + 1.2);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.25);
+
+        osc.connect(gain);
+        gain.connect(ringtoneAudioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 1.25);
+      });
+    };
+
+    playRingPattern();
+    ringtoneInterval = setInterval(playRingPattern, 3000);
+  } catch (err) {
+    console.warn('Ringtone sound error:', err);
+  }
+}
+
+function stopRingtone() {
+  if (ringtoneInterval) {
+    clearInterval(ringtoneInterval);
+    ringtoneInterval = null;
+  }
+  if (ringtoneAudioCtx) {
+    try { ringtoneAudioCtx.close(); } catch (_) {}
+    ringtoneAudioCtx = null;
+  }
+}
+
 // Mini Voice Note Player (Only Play/Pause button + progress indicator)
 function VoiceNotePlayer({ audioUrl }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -104,6 +155,16 @@ export default function LiveChat({ roomId }) {
   const recordingTimerRef = useRef(null);
 
   const myName = auth.currentUser ? generateUserName(auth.currentUser.uid) : "You";
+
+  // Trigger ringtone sound when incoming call arrives
+  useEffect(() => {
+    if (callStatus === 'incoming') {
+      startRingtone();
+    } else {
+      stopRingtone();
+    }
+    return () => stopRingtone();
+  }, [callStatus]);
 
   // Subscribe to room chat messages
   useEffect(() => {
@@ -213,6 +274,7 @@ export default function LiveChat({ roomId }) {
 
   // Clean up WebRTC peer connection & media streams
   const cleanupCall = () => {
+    stopRingtone();
     if (pcRef.current) {
       pcRef.current.close();
       pcRef.current = null;
@@ -308,6 +370,7 @@ export default function LiveChat({ roomId }) {
 
   // Answer WebRTC Live Call
   const answerCall = async () => {
+    stopRingtone();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localStreamRef.current = stream;
@@ -347,7 +410,6 @@ export default function LiveChat({ roomId }) {
         });
       });
 
-      // Fetch latest call doc if incomingCallData is missing
       if (incomingCallData?.offer) {
         await pc.setRemoteDescription(new RTCSessionDescription(incomingCallData.offer));
       }
@@ -371,6 +433,7 @@ export default function LiveChat({ roomId }) {
 
   // End / Reject Call
   const endCall = async () => {
+    stopRingtone();
     if (roomId) {
       deleteDoc(doc(db, 'room_calls', roomId)).catch(() => {});
     }
@@ -578,7 +641,32 @@ export default function LiveChat({ roomId }) {
         </div>
       )}
 
-      {/* Live Chat Header with Live Call Action Button */}
+      {/* Centered Incoming Call Screen Modal with Phone Ringing Sound */}
+      {callStatus === 'incoming' && (
+        <div className="incoming-call-modal-backdrop">
+          <div className="incoming-call-modal">
+            <div className="incoming-ring-waves">
+              <div className="wave wave1"></div>
+              <div className="wave wave2"></div>
+              <div className="incoming-avatar">📞</div>
+            </div>
+            <h3>Incoming Live Voice Call</h3>
+            <p className="incoming-caller-name">
+              {incomingCallData?.callerName || 'Your Partner'} is calling you...
+            </p>
+            <div className="incoming-modal-actions">
+              <button type="button" className="modal-answer-btn" onClick={answerCall}>
+                🟢 Accept Call
+              </button>
+              <button type="button" className="modal-decline-btn" onClick={endCall}>
+                🔴 Decline
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Live Chat Header */}
       <div className="chat-header">
         <h3>Live Chat</h3>
 
@@ -593,18 +681,6 @@ export default function LiveChat({ roomId }) {
             <button type="button" className="chat-call-btn calling" onClick={endCall} title="Cancel Calling">
               <span className="pulse-call-dot"></span> Calling... (Cancel)
             </button>
-          )}
-
-          {callStatus === 'incoming' && (
-            <div className="chat-incoming-call">
-              <span className="incoming-label">📞 Incoming Call</span>
-              <button type="button" className="chat-answer-btn" onClick={answerCall} title="Answer Call">
-                🟢 Answer
-              </button>
-              <button type="button" className="chat-decline-btn" onClick={endCall} title="Decline Call">
-                🔴 Decline
-              </button>
-            </div>
           )}
 
           {callStatus === 'connected' && (
@@ -645,7 +721,7 @@ export default function LiveChat({ roomId }) {
                     <span className="notice-title">{msg.text}</span>
                     {!isMe && callStatus === 'idle' && (
                       <button type="button" className="notice-join-btn" onClick={answerCall}>
-                        📞 Join Voice Call
+                        📞 Accept Call
                       </button>
                     )}
                   </div>
