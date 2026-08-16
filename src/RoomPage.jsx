@@ -53,7 +53,7 @@ const ListeningDuo = ({ djName, listenerName }) => {
   );
 };
 
-export default function RoomPage({ djSession, setDjSession, children }) {
+export default function RoomPage({ djSession, setDjSession, children, onOpenSearch }) {
   const [currentTheme, setCurrentTheme] = useState(() => {
     return localStorage.getItem('room_bg_theme') || 'romantic';
   });
@@ -123,9 +123,20 @@ export default function RoomPage({ djSession, setDjSession, children }) {
           <span className="room-title-badge">🎵 Listening Session</span>
         </div>
 
-        <button className="leave-room-btn" onClick={() => setDjSession(null)}>
-          Leave Session
-        </button>
+        <div className="room-header-actions">
+          {onOpenSearch && (
+            <button className="room-search-btn" onClick={onOpenSearch} title="Search Online Songs">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <span>Search Songs</span>
+            </button>
+          )}
+          <button className="leave-room-btn" onClick={() => setDjSession(null)}>
+            Leave Session
+          </button>
+        </div>
       </div>
 
       <div className="room-content">

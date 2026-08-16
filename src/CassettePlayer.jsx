@@ -4,7 +4,7 @@ import { db, signInAnonymousUser, generateUserName } from './firebase';
 import { LOCAL_TRACKS } from './jiosaavnService';
 import './CassettePlayer.css';
 
-export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTrackIndex, djSession, setDjSession, isCallSpeaking, duckRatio = 0.4 }) {
+export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTrackIndex, djSession, setDjSession, isCallSpeaking, duckRatio = 0.4, onOpenSearch }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -128,31 +128,50 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     return () => clearInterval(interval);
   }, [user, djSession, isPlaying, currentTrack]);
 
-  // Create / update audio element on track change & auto-play
+  // Create / update audio element on track change & auto-play from beginning (0:00)
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentTrack.src) return;
 
     audio.pause();
-    try { audio.currentTime = 0; } catch (_) {}
+    setCurrentTime(0);
+    setDuration(0);
     
     audio.src = currentTrack.src;
     audio.load();
-    try { audio.currentTime = 0; } catch (_) {}
 
-    setCurrentTime(0);
-    setDuration(0);
+    const resetTimeToZero = () => {
+      try {
+        if (audio.currentTime > 0.5) {
+          audio.currentTime = 0;
+        }
+      } catch (_) {}
+    };
 
-    // Always auto-play when a new track is loaded
+    audio.addEventListener('loadedmetadata', resetTimeToZero, { once: true });
+    audio.addEventListener('canplay', resetTimeToZero, { once: true });
+
+    // Always auto-play from 0:00 when a new track is loaded
     const playPromise = audio.play();
     if (playPromise) {
       playPromise.then(() => {
+        try {
+          // Double check time is at beginning on start
+          if (audio.currentTime > 1.0) {
+            audio.currentTime = 0;
+          }
+        } catch (_) {}
         setIsPlaying(true);
       }).catch((err) => {
         console.warn('Auto-play required user interaction or failed:', err);
         setIsPlaying(false);
       });
     }
+
+    return () => {
+      audio.removeEventListener('loadedmetadata', resetTimeToZero);
+      audio.removeEventListener('canplay', resetTimeToZero);
+    };
   }, [currentTrackIndex, currentTrack.src]);
 
   // Auto pause music during live call speech & auto resume after 5s silence; duck 50% for voice notes
@@ -229,7 +248,13 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
 
   // Audio event handlers
   const handleLoadedMetadata = () => {
-    setDuration(audioRef.current.duration);
+    if (audioRef.current) {
+      try {
+        audioRef.current.currentTime = 0;
+      } catch (_) {}
+      setDuration(audioRef.current.duration || 0);
+    }
+    setCurrentTime(0);
   };
 
   const handleEnded = () => {
@@ -379,6 +404,14 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
           <button className="player-btn" onClick={handleNext} title="Next">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
           </button>
+          {onOpenSearch && (
+            <button className="player-btn search-player-btn" onClick={onOpenSearch} title="Search Online Songs">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </button>
+          )}
         </div>
       </div>
     </div>

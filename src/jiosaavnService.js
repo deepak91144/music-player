@@ -1,19 +1,14 @@
 import CryptoJS from 'crypto-js';
 
-// Decryption key for JioSaavn encrypted_media_url
 const DES_KEY = '38346591';
 
-/**
- * LOCAL AUDIO TRACKS COLLECTION
- * High-Quality Local Audio Tracks stored in public/audio/
- */
 export const LOCAL_TRACKS = [
   {
     id: 'local_1',
     title: 'Zara Sa',
-    artist: 'KK',
+    artist: 'KK, Pritam',
     album: 'Jannat',
-    genre: 'Bollywood',
+    genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/Zara Sa Jannat 320 Kbps.mp3',
     year: '2008'
@@ -21,182 +16,182 @@ export const LOCAL_TRACKS = [
   {
     id: 'local_2',
     title: 'Dil Ibaadat',
-    artist: 'KK',
+    artist: 'KK, Pritam',
     album: 'Tum Mile',
-    genre: 'Bollywood',
+    genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
-    src: '/audio/Dil Ibaadat Tum Mile Original Motion Picturetrack 320 Kbps.mp3',
+    src: '/audio/Dil Ibaadat Tum Mile 320 Kbps.mp3',
     year: '2009'
   },
   {
     id: 'local_3',
     title: 'Labon Ko',
-    artist: 'KK',
+    artist: 'KK, Pritam',
     album: 'Bhool Bhulaiyaa',
-    genre: 'Bollywood',
+    genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/Labon Ko Bhool Bhulaiyaa 320 Kbps.mp3',
     year: '2007'
   },
   {
     id: 'local_4',
-    title: 'Tu Hi Meri Shab Hai',
-    artist: 'KK',
-    album: 'Gangster',
-    genre: 'Bollywood',
+    title: 'Beete Lamhein',
+    artist: 'KK, Mithoon',
+    album: 'The Train',
+    genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
-    src: '/audio/Tu Hi Meri Shab Hai Gangster 320 Kbps.mp3',
-    year: '2006'
+    src: '/audio/Beete Lamhein The Train 320 Kbps.mp3',
+    year: '2007'
   },
   {
     id: 'local_5',
     title: 'Haan Tu Hain',
-    artist: 'KK',
+    artist: 'KK, Pritam',
     album: 'Jannat',
-    genre: 'Bollywood',
+    genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
     src: '/audio/Haan Tu Hain Jannat 320 Kbps.mp3',
     year: '2008'
   },
   {
     id: 'local_6',
-    title: 'Ajab Si',
-    artist: 'KK',
-    album: 'Om Shanti Om',
-    genre: 'Bollywood',
+    title: 'Khuda Jaane',
+    artist: 'KK, Shilpa Rao, Vishal-Shekhar',
+    album: 'Bachna Ae Haseeno',
+    genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
-    src: '/audio/Ajab Si Om Shanti Om 320 Kbps.mp3',
-    year: '2007'
+    src: '/audio/Khuda Jaane Bachna Ae Haseeno 320 Kbps.mp3',
+    year: '2008'
   },
   {
     id: 'local_7',
-    title: 'I Am In Love',
-    artist: 'KK & Dominique Cerejo',
-    album: 'Once Upon A Time In Mumbaai',
-    genre: 'Bollywood',
+    title: 'Aankhon Mein Teri',
+    artist: 'KK, Vishal-Shekhar',
+    album: 'Om Shanti Om',
+    genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
-    src: '/audio/I Am In Love Once Upon A Time In Mumbaai 320 Kbps.mp3',
-    year: '2010'
+    src: '/audio/Aankhon Mein Teri Om Shanti Om 320 Kbps.mp3',
+    year: '2007'
   },
   {
     id: 'local_8',
-    title: 'Mujhe De De Har Gham Tera',
-    artist: 'KK',
-    album: 'Haunted 3D',
-    genre: 'Bollywood',
+    title: 'Tu Hi Meri Shab Hai',
+    artist: 'KK, Pritam',
+    album: 'Gangster',
+    genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
-    src: '/audio/Mujhe De De Har Gham Tera Haunted 320 Kbps.mp3',
-    year: '2011'
+    src: '/audio/Tu Hi Meri Shab Hai Gangster 320 Kbps.mp3',
+    year: '2006'
   },
   {
     id: 'local_9',
-    title: 'Soniye',
-    artist: 'KK',
-    album: 'Heartless',
-    genre: 'Bollywood',
+    title: 'Kya Mujhe Pyar Hai',
+    artist: 'KK, Pritam',
+    album: 'Woh Lamhe',
+    genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
-    src: '/audio/Soniye Heartless 320 Kbps.mp3',
-    year: '2014'
+    src: '/audio/Kya Mujhe Pyar Hai Woh Lamhe 320 Kbps.mp3',
+    year: '2006'
   },
   {
     id: 'local_10',
-    title: 'Agar Tum Saath Ho',
-    artist: 'Arijit Singh & Alka Yagnik',
-    album: 'Tamasha',
-    genre: 'Bollywood',
+    title: 'Sajde',
+    artist: 'KK, Sunidhi Chauhan, Pritam',
+    album: 'Khatta Meetha',
+    genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
-    src: '/audio/Agar Tum Saath Ho Tamasha 320 Kbps.mp3',
-    year: '2015'
+    src: '/audio/Sajde Khatta Meetha 320 Kbps.mp3',
+    year: '2010'
   },
   {
     id: 'local_11',
-    title: 'Bol Do Na Zara',
-    artist: 'Armaan Malik',
-    album: 'Azhar',
-    genre: 'Bollywood',
+    title: 'O Meri Jaan',
+    artist: 'KK, Pritam',
+    album: 'Life In A Metro',
+    genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
-    src: '/audio/Bol Do Na Zara Azhar 320 Kbps.mp3',
-    year: '2016'
+    src: '/audio/O Meri Jaan Life In A Metro 320 Kbps.mp3',
+    year: '2007'
   },
   {
     id: 'local_12',
-    title: 'Hey Shona',
-    artist: 'Shaan & Sunidhi Chauhan',
-    album: 'Ta Ra Rum Pum',
-    genre: 'Bollywood',
+    title: 'Alvida',
+    artist: 'KK, Pritam',
+    album: 'Life In A Metro',
+    genre: 'Bollywood Rock',
     cover: '/album_midnight.png',
-    src: '/audio/Hey Shona Ta Ra Rum Pum 320 Kbps.mp3',
+    src: '/audio/Alvida Life In A Metro 320 Kbps.mp3',
     year: '2007'
   },
   {
     id: 'local_13',
-    title: 'Jab Tak',
-    artist: 'Armaan Malik',
-    album: 'M.S. Dhoni The Untold Story',
-    genre: 'Bollywood',
+    title: 'Tujhe Sochta Hoon',
+    artist: 'KK, Pritam',
+    album: 'Jannat 2',
+    genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
-    src: '/audio/Jab Tak M.s. Dhoni The Untold Story 320 Kbps.mp3',
-    year: '2016'
+    src: '/audio/Tujhe Sochta Hoon Jannat 2 320 Kbps.mp3',
+    year: '2012'
   },
   {
     id: 'local_14',
-    title: 'Kaise Hua',
-    artist: 'Vishal Mishra',
-    album: 'Kabir Singh',
-    genre: 'Bollywood',
+    title: 'Piya Aaye Na',
+    artist: 'KK, Tulsi Kumar, Jeet Gannguli',
+    album: 'Aashiqui 2',
+    genre: 'Bollywood Sad Romance',
     cover: '/album_midnight.png',
-    src: '/audio/Kaise Hua Kabir Singh 320 Kbps.mp3',
-    year: '2019'
+    src: '/audio/Piya Aaye Na Aashiqui 2 320 Kbps.mp3',
+    year: '2013'
   },
   {
     id: 'local_15',
-    title: 'Kaun Tujhe',
-    artist: 'Palak Muchhal',
-    album: 'M.S. Dhoni The Untold Story',
-    genre: 'Bollywood',
+    title: 'Dil Kyun Yeh Mera',
+    artist: 'KK, Rajesh Roshan',
+    album: 'Kites',
+    genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
-    src: '/audio/Kaun Tujhe M.s. Dhoni The Untold Story 320 Kbps.mp3',
-    year: '2016'
+    src: '/audio/Dil Kyun Yeh Mera Kites 320 Kbps.mp3',
+    year: '2010'
   },
   {
     id: 'local_16',
-    title: 'Pehla Pyaar',
-    artist: 'Armaan Malik',
-    album: 'Kabir Singh',
-    genre: 'Bollywood',
+    title: 'Zindagi Do Pal Ki',
+    artist: 'KK, Rajesh Roshan',
+    album: 'Kites',
+    genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
-    src: '/audio/Pehla Pyaar (PenduJatt.Com.Se).mp3',
-    year: '2019'
+    src: '/audio/Zindagi Do Pal Ki Kites 320 Kbps.mp3',
+    year: '2010'
   },
   {
     id: 'local_17',
-    title: 'Tu Hi Haqeeqat',
-    artist: 'Javed Ali',
-    album: 'Tum Mile',
-    genre: 'Bollywood',
+    title: 'Make Some Noise For The Desi Boyz',
+    artist: 'KK, Bob, Pritam',
+    album: 'Desi Boyz',
+    genre: 'Bollywood Dance',
     cover: '/album_midnight.png',
-    src: '/audio/Tu Hi Haqeeqat Tum Mile Original Motion Picturetrack 320 Kbps.mp3',
-    year: '2009'
+    src: '/audio/Make Some Noise For The Desi Boyz Desi Boyz 320 Kbps.mp3',
+    year: '2011'
   },
   {
     id: 'local_18',
-    title: 'Tum Hi Ho',
-    artist: 'Arijit Singh',
-    album: 'Aashiqui 2',
-    genre: 'Bollywood',
+    title: 'Mat Aazma Re',
+    artist: 'KK, Pritam',
+    album: 'Murder 3',
+    genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
-    src: '/audio/Tum Hi Ho Aashiqui 2 320 Kbps.mp3',
+    src: '/audio/Mat Aazma Re Murder 3 320 Kbps.mp3',
     year: '2013'
   },
   {
     id: 'local_19',
-    title: 'Tum Se Hi',
-    artist: 'Mohit Chauhan',
-    album: 'Jab We Met',
-    genre: 'Bollywood',
+    title: 'Abhi Abhi',
+    artist: 'KK, Shreya Ghoshal',
+    album: 'Jism 2',
+    genre: 'Bollywood Romance',
     cover: '/album_midnight.png',
-    src: '/audio/Tum Se Hi Jab We Met 320 Kbps (1).mp3',
-    year: '2007'
+    src: '/audio/Abhi Abhi Jism 2 320 Kbps.mp3',
+    year: '2012'
   },
   {
     id: 'local_20',
@@ -211,7 +206,7 @@ export const LOCAL_TRACKS = [
 ];
 
 /**
- * Decrypts encrypted_media_url into a streamable high quality 320kbps audio URL
+ * Decrypts JioSaavn encrypted_media_url into a streamable high quality 320kbps audio URL
  */
 export function decryptMediaUrl(encryptedUrl) {
   if (!encryptedUrl) return null;
@@ -261,7 +256,7 @@ export function sanitizeText(text) {
 }
 
 /**
- * Upgrades image URL to 500x500
+ * Upgrades image URL to high resolution 500x500
  */
 export function getHighResImage(imageUrl) {
   if (!imageUrl) return '/album_midnight.png';
@@ -273,6 +268,36 @@ export function getHighResImage(imageUrl) {
     .replace('150x150', '500x500')
     .replace('50x50', '500x500')
     .replace('http://', 'https://');
+}
+
+/**
+ * Formats iTunes item into standardized Track object
+ */
+export function formatItunesTrack(item) {
+  if (!item || !item.previewUrl) return null;
+
+  const coverUrl = item.artworkUrl100
+    ? item.artworkUrl100.replace('100x100bb', '600x600bb')
+    : '/album_midnight.png';
+
+  const year = item.releaseDate ? item.releaseDate.substring(0, 4) : '';
+  const durationSec = item.trackTimeMillis ? Math.round(item.trackTimeMillis / 1000) : 180;
+
+  return {
+    id: `itunes_${item.trackId}`,
+    title: sanitizeText(item.trackName),
+    artist: sanitizeText(item.artistName),
+    album: sanitizeText(item.collectionName || 'Single'),
+    genre: item.primaryGenreName || 'Bollywood',
+    cover: coverUrl,
+    src: item.previewUrl,
+    duration: durationSec,
+    year: year,
+    language: 'Hindi',
+    hasLyrics: false,
+    isOnline: true,
+    raw: item
+  };
 }
 
 /**
@@ -343,14 +368,25 @@ async function fetchJioSaavnApi(params) {
   const queryStr = new URLSearchParams(params).toString();
   const targetUrl = `https://www.jiosaavn.com/api.php?${queryStr}`;
 
+  const parseJsonSafe = (raw) => {
+    if (!raw) return null;
+    if (typeof raw === 'object') return raw;
+    try {
+      const trimmed = String(raw).trim();
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        return JSON.parse(trimmed);
+      }
+    } catch (_) {}
+    return null;
+  };
+
   // Try 1: Local Vite proxy (works during `npm run dev`)
   try {
     const res = await fetch(`/saavn-api/api.php?${queryStr}`);
     if (res.ok) {
       const text = await res.text();
-      if (text && text.trim().startsWith('{')) {
-        return JSON.parse(text);
-      }
+      const data = parseJsonSafe(text);
+      if (data) return data;
     }
   } catch (_) {}
 
@@ -359,48 +395,64 @@ async function fetchJioSaavnApi(params) {
     const res = await fetch(targetUrl);
     if (res.ok) {
       const text = await res.text();
-      if (text && text.trim().startsWith('{')) {
-        return JSON.parse(text);
+      const data = parseJsonSafe(text);
+      if (data) return data;
+    }
+  } catch (_) {}
+
+  // Try 3: AllOrigins GET wrapper
+  try {
+    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`);
+    if (res.ok) {
+      const wrapper = await res.json();
+      if (wrapper && wrapper.contents) {
+        const data = parseJsonSafe(wrapper.contents);
+        if (data && (data.results || data.songs || data.topquery || Array.isArray(data))) {
+          return data;
+        }
       }
     }
   } catch (_) {}
 
-  // Try 3: Public CORS proxies in order
-  const corsProxies = [
-    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-    url => `https://corsproxy.org/?${encodeURIComponent(url)}`,
-    url => `https://api.cors.lol/?url=${encodeURIComponent(url)}`
-  ];
-
-  for (const getProxyUrl of corsProxies) {
-    try {
-      const proxyUrl = getProxyUrl(targetUrl);
-      const res = await fetch(proxyUrl);
-      if (res.ok) {
-        const text = await res.text();
-        if (text && text.trim().startsWith('{')) {
-          const data = JSON.parse(text);
-          if (data && (data.results || data.songs || data.topquery || Array.isArray(data))) {
-            return data;
-          }
-        }
+  // Try 4: Codetabs proxy
+  try {
+    const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`);
+    if (res.ok) {
+      const text = await res.text();
+      const data = parseJsonSafe(text);
+      if (data && (data.results || data.songs || data.topquery || Array.isArray(data))) {
+        return data;
       }
-    } catch (_) {}
-  }
+    }
+  } catch (_) {}
+
+  // Try 5: CorsProxy.org
+  try {
+    const res = await fetch(`https://corsproxy.org/?${encodeURIComponent(targetUrl)}`);
+    if (res.ok) {
+      const text = await res.text();
+      const data = parseJsonSafe(text);
+      if (data && (data.results || data.songs || data.topquery || Array.isArray(data))) {
+        return data;
+      }
+    }
+  } catch (_) {}
 
   return null;
 }
 
 /**
- * Search songs on JioSaavn
+ * Search songs across JioSaavn (Full Length), iTunes, and Local Tracks
  */
-export async function searchSongs(query, page = 1, limit = 20) {
+export async function searchSongs(query, page = 1, limit = 25) {
   if (!query || !query.trim()) return LOCAL_TRACKS;
 
-  const data = await fetchJioSaavnApi({
+  const q = query.trim();
+
+  // STEP 1: Query JioSaavn API for FULL-LENGTH 320kbps HD Audio Streams (4-6 minutes!)
+  const saavnData = await fetchJioSaavnApi({
     __call: 'search.getResults',
-    q: query.trim(),
+    q: q,
     n: limit,
     p: page,
     _format: 'json',
@@ -409,12 +461,24 @@ export async function searchSongs(query, page = 1, limit = 20) {
     ctx: 'web'
   });
 
-  if (data && Array.isArray(data.results) && data.results.length > 0) {
-    return data.results.map(formatJioSaavnTrack).filter(t => t !== null && t.src);
+  if (saavnData && Array.isArray(saavnData.results) && saavnData.results.length > 0) {
+    const saavnTracks = saavnData.results
+      .map(formatJioSaavnTrack)
+      .filter(t => t !== null && t.src);
+
+    if (saavnTracks.length > 0) {
+      return saavnTracks;
+    }
   }
 
-  // Fallback to searching local tracks
-  const qLower = query.toLowerCase().trim();
+  // STEP 2: iTunes India API fallback
+  const itunesResults = await searchItunesApi(q, limit);
+  if (itunesResults.length > 0) {
+    return itunesResults;
+  }
+
+  // STEP 3: Fallback to searching local tracks
+  const qLower = q.toLowerCase();
   const filteredLocal = LOCAL_TRACKS.filter(t => 
     t.title.toLowerCase().includes(qLower) ||
     t.artist.toLowerCase().includes(qLower) ||
@@ -426,25 +490,45 @@ export async function searchSongs(query, page = 1, limit = 20) {
 }
 
 /**
+ * Primary iTunes India Music Search
+ */
+async function searchItunesApi(query, limit = 25) {
+  try {
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&country=in&media=music&entity=song&limit=${limit}`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.results) && data.results.length > 0) {
+        return data.results.map(formatItunesTrack).filter(t => t !== null && t.src);
+      }
+    }
+  } catch (err) {
+    console.warn('iTunes Music Search failed:', err);
+  }
+  return [];
+}
+
+/**
  * Autocomplete search for live search bar suggestions
  */
 export async function autocompleteSearch(query) {
   if (!query || !query.trim()) return null;
 
-  const data = await fetchJioSaavnApi({
+  const q = query.trim();
+
+  const saavnData = await fetchJioSaavnApi({
     __call: 'autocomplete.get',
-    query: query.trim(),
+    query: q,
     _format: 'json',
     _marker: '0',
     ctx: 'web'
   });
 
-  if (data) return data;
+  if (saavnData) return saavnData;
 
-  // Local autocomplete fallback
   const matches = LOCAL_TRACKS.filter(t => 
-    t.title.toLowerCase().includes(query.toLowerCase()) || 
-    t.artist.toLowerCase().includes(query.toLowerCase())
+    t.title.toLowerCase().includes(q.toLowerCase()) || 
+    t.artist.toLowerCase().includes(q.toLowerCase())
   );
 
   if (matches.length === 0) return null;
@@ -465,6 +549,19 @@ export async function autocompleteSearch(query) {
  */
 export async function getSongDetails(songId) {
   if (!songId) return null;
+
+  if (songId.startsWith('itunes_')) {
+    const rawId = songId.replace('itunes_', '');
+    try {
+      const res = await fetch(`https://itunes.apple.com/lookup?id=${rawId}&country=in`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.results && data.results[0]) {
+          return formatItunesTrack(data.results[0]);
+        }
+      }
+    } catch (_) {}
+  }
 
   const data = await fetchJioSaavnApi({
     __call: 'song.getDetails',
@@ -516,6 +613,9 @@ export const TRENDING_CATEGORIES = [
   { name: '🌙 KK Midnight Melodies', query: 'KK Soulful Love Songs' },
   { name: '✨ Arijit Singh Romantic', query: 'Arijit Singh Romantic Hits' },
   { name: '🎸 Acoustic Love Hits', query: 'Unplugged Hindi Love Songs' },
+  { name: '🌹 Pritam Classic Love', query: 'Pritam Love Songs' },
+  { name: '🎧 Diljit Dosanjh Hits', query: 'Diljit Dosanjh' },
+  { name: '🔥 AR Rahman Classics', query: 'AR Rahman Tamil Hindi' },
+  { name: '🎶 Shreya Ghoshal Melodies', query: 'Shreya Ghoshal Romantic' },
+  { name: '🎸 Acoustic & Lofi Beats', query: 'Bollywood Lofi Acoustic' }
 ];
-
-

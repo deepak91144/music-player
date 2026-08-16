@@ -100,6 +100,7 @@ export default function App() {
       setCurrentTrackIndex={setCurrentTrackIndex}
       djSession={djSession}
       setDjSession={setDjSession}
+      onOpenSearch={() => setIsSearchOpen(true)}
     />
   );
 
@@ -133,6 +134,7 @@ export default function App() {
           djSession={djSession} 
           setDjSession={setDjSession} 
           currentTrack={currentTrack}
+          onOpenSearch={() => setIsSearchOpen(true)}
         >
           {renderPlayer()}
         </RoomPage>
@@ -156,11 +158,12 @@ export default function App() {
             </p>
           </div>
 
+          {/* Floating Search Action */}
           <div className="player-top-actions">
             <button 
               className="floating-search-btn"
               onClick={() => setIsSearchOpen(true)}
-              title="Search Songs"
+              title="Search Online Songs"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <circle cx="11" cy="11" r="8"></circle>
