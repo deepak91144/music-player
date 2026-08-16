@@ -4,9 +4,39 @@ import './RoomPage.css';
 
 function ListeningDuo({ djName, listenerName }) {
   return (
-    <div className="listening-duo-badge">
-      <span className="duo-icon">🎧</span>
-      <span className="duo-text"><strong>{djName}</strong> &amp; <strong>{listenerName}</strong> listening together</span>
+    <div className="listening-duo">
+      <div className="duo-character">
+        <div className="character-avatar-box">
+          <span className="headphones-graphic">🎧</span>
+          <div className="avatar-face dj-face">
+            <span className="face-expression">(◕‿◕)</span>
+          </div>
+          <span className="duo-badge dj-badge">DJ</span>
+        </div>
+        <span className="duo-username">{djName}</span>
+      </div>
+
+      <div className="duo-audio-bridge">
+        <span className="music-note">🎵</span>
+        <div className="connecting-equalizer">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <span className="music-note n2">🎶</span>
+      </div>
+
+      <div className="duo-character">
+        <div className="character-avatar-box">
+          <span className="headphones-graphic">🎧</span>
+          <div className="avatar-face listener-face">
+            <span className="face-expression">(⁠─⁠‿⁠─⁠)</span>
+          </div>
+          <span className="duo-badge listener-badge">LISTENER</span>
+        </div>
+        <span className="duo-username">{listenerName}</span>
+      </div>
     </div>
   );
 }
@@ -132,9 +162,9 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
         </div>
       </div>
 
-      {/* Unified Mobile Bottom Navigation Bar: [ Themes | Search | Chat ] */}
+      {/* Floating Action Controls */}
       {!isChatOpen && (
-        <div className="room-mobile-bottom-bar">
+        <div className="room-bottom-actions">
           {/* Floating Theme Button & Popup Menu */}
           <div className="floating-theme-wrapper">
             {isThemeMenuOpen && (
@@ -179,7 +209,7 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
             </button>
           </div>
 
-          {/* Search Button in between Themes and Chat */}
+          {/* Mobile-only Search Button (Between Themes & Chat) */}
           {onOpenSearch && (
             <button 
               className="floating-search-btn-room" 
@@ -194,7 +224,7 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
             </button>
           )}
 
-          {/* Chat Toggle Button */}
+          {/* Floating Chat Icon Button */}
           <button 
             className="floating-chat-btn" 
             onClick={() => {

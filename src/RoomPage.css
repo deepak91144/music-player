@@ -729,8 +729,13 @@
     max-width: 100% !important;
   }
 
+  /* Desktop search button visible in header, hidden on mobile */
+  .room-header .room-search-btn {
+    display: none;
+  }
+
   /* Show mobile bottom bar on mobile: [ Themes | Search | Chat ] */
-  .room-mobile-bottom-bar {
+  .room-bottom-actions {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -751,15 +756,15 @@
     box-shadow: 0 12px 35px rgba(0, 0, 0, 0.65), 0 0 20px rgba(232, 121, 249, 0.2);
   }
 
-  .room-mobile-bottom-bar .floating-theme-wrapper {
+  .room-bottom-actions .floating-theme-wrapper {
     position: relative;
     margin: 0;
     flex: 1;
   }
 
-  .room-mobile-bottom-bar .floating-theme-btn,
-  .room-mobile-bottom-bar .floating-search-btn-room,
-  .room-mobile-bottom-bar .floating-chat-btn {
+  .room-bottom-actions .floating-theme-btn,
+  .room-bottom-actions .floating-search-btn-room,
+  .room-bottom-actions .floating-chat-btn {
     position: static;
     display: flex;
     align-items: center;
@@ -780,25 +785,21 @@
     width: 100%;
   }
 
-  .room-mobile-bottom-bar .floating-search-btn-room {
+  .room-bottom-actions .floating-search-btn-room {
     background: linear-gradient(135deg, rgba(232, 121, 249, 0.35) 0%, rgba(192, 132, 252, 0.35) 100%);
     border-color: rgba(232, 121, 249, 0.5);
     color: #ffffff;
     box-shadow: 0 4px 15px rgba(232, 121, 249, 0.25);
   }
 
-  .room-mobile-bottom-bar .floating-chat-btn {
+  .room-bottom-actions .floating-chat-btn {
     background: linear-gradient(135deg, #ff2d55 0%, #e11d48 100%);
     border: none;
     box-shadow: 0 4px 15px rgba(255, 45, 85, 0.3);
   }
 
-  .room-mobile-bottom-bar .floating-theme-btn {
+  .room-bottom-actions .floating-theme-btn {
     background: rgba(255, 255, 255, 0.12);
-  }
-
-  .room-header .room-search-btn {
-    display: none;
   }
 
   /* Backdrop overlay on mobile */
