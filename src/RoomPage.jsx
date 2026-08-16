@@ -18,26 +18,35 @@ const ListeningDuo = ({ djName, listenerName }) => {
       <div className="duo-character dj-side">
         <div className="character-avatar-box">
           <div className="headphones-graphic">🎧</div>
-          <div className="character-face dj-face"></div>
+          <div className="avatar-face dj-face">
+            <span className="face-expression">(•‿•)</span>
+          </div>
+          <span className="duo-badge dj-badge">DJ</span>
         </div>
-        <span className="duo-role-badge">🎧 DJ</span>
         <span className="duo-username">{djName}</span>
       </div>
 
-      {/* Connection heart animation */}
-      <div className="duo-connection-heart">
-        <span className="heart-pulse">💖</span>
-        <span className="wave-ring wave1"></span>
-        <span className="wave-ring wave2"></span>
+      {/* Musical Connection Soundwaves */}
+      <div className="duo-audio-bridge">
+        <span className="music-note n1">🎵</span>
+        <div className="connecting-equalizer">
+          <span className="eq-bar b1"></span>
+          <span className="eq-bar b2"></span>
+          <span className="eq-bar b3"></span>
+          <span className="eq-bar b4"></span>
+        </div>
+        <span className="music-note n2">🎶</span>
       </div>
 
       {/* Listener Character */}
       <div className="duo-character listener-side">
         <div className="character-avatar-box">
           <div className="headphones-graphic">🎧</div>
-          <div className="character-face listener-face"></div>
+          <div className="avatar-face listener-face">
+            <span className="face-expression">(◠‿◠)</span>
+          </div>
+          <span className="duo-badge listener-badge">LISTENER</span>
         </div>
-        <span className="duo-role-badge listener-badge">✨ Listener</span>
         <span className="duo-username">{listenerName}</span>
       </div>
     </div>
