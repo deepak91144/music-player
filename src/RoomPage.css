@@ -323,6 +323,18 @@
   gap: 16px;
 }
 
+.room-player-section .modern-player-wrapper {
+  position: relative !important;
+  bottom: auto !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  transform: none !important;
+  width: 100% !important;
+  max-width: 440px !important;
+  margin: 0 auto !important;
+}
+
 /* ==================== */
 /*  ANIMATED LISTENING DUO
 /* ==================== */
@@ -749,9 +761,16 @@
   }
 
   .room-player-section .modern-player-wrapper {
+    position: relative !important;
+    bottom: auto !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
     width: 100% !important;
     max-width: 440px !important;
     margin: 0 auto !important;
+    z-index: 10 !important;
   }
 
   /* Desktop search button visible in header, hidden on mobile */
