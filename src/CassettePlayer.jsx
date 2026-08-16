@@ -263,19 +263,30 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
   const handleAudioError = () => {
     setIsLoading(false);
     console.error('Audio failed to load:', currentTrack.src);
-    
-    // Fallback to matching local track or next track if stream fails to play
-    const songTitleLower = (currentTrack.title || '').toLowerCase();
-    const fallback = LOCAL_TRACKS.find(t => songTitleLower.includes(t.title.toLowerCase()) || t.title.toLowerCase().includes(songTitleLower)) || LOCAL_TRACKS[0];
-    
-    if (fallback && audioRef.current && currentTrack.src !== fallback.src) {
-      console.warn(`Stream load failed. Falling back to local track for ${currentTrack.title}`);
-      audioRef.current.src = fallback.src;
-      audioRef.current.load();
-      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => handleNext());
-    } else {
-      handleNext();
+
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    // Try lower bitrate fallback (_160.mp4 / _96.mp4) for the SAME online track
+    if (currentTrack.src && currentTrack.src.includes('_320.')) {
+      const fallbackSrc = currentTrack.src.replace('_320.', '_160.');
+      console.warn(`320kbps stream failed. Trying 160kbps fallback for ${currentTrack.title}`);
+      audio.src = fallbackSrc;
+      audio.load();
+      audio.play().then(() => setIsPlaying(true)).catch(() => handleNext());
+      return;
     }
+
+    if (currentTrack.src && currentTrack.src.includes('_160.')) {
+      const fallbackSrc = currentTrack.src.replace('_160.', '_96.');
+      console.warn(`160kbps stream failed. Trying 96kbps fallback for ${currentTrack.title}`);
+      audio.src = fallbackSrc;
+      audio.load();
+      audio.play().then(() => setIsPlaying(true)).catch(() => handleNext());
+      return;
+    }
+
+    handleNext();
   };
 
   // Controls

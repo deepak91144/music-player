@@ -397,27 +397,28 @@ async function fetchJioSaavnApi(params) {
     return null;
   };
 
-  // Try 1: Dedicated Public Saavn API Engine (CORS enabled, 100% works on Render.com & all hosted domains)
-  if (query) {
-    try {
-      const res = await fetch(`https://jiosaavn-api-beta.vercel.app/search/songs?query=${encodeURIComponent(query)}&limit=25`);
-      if (res.ok) {
-        const json = await res.json();
-        const results = json.data?.results || json.results || [];
-        if (results.length > 0) {
-          return { results };
-        }
-      }
-    } catch (_) {}
-  }
-
-  // Try 2: Local Vite / Production Proxy (/saavn-api/api.php)
+  // Try 1: Local Vite / Production Proxy (/saavn-api/api.php)
   try {
     const res = await fetch(`/saavn-api/api.php?${queryStr}`);
     if (res.ok) {
       const text = await res.text();
       const data = parseJsonSafe(text);
       if (data && (data.results || data.songs)) return data;
+    }
+  } catch (_) {}
+
+  // Try 2: Official JioSaavn via AllOrigins GET Wrapper (returns fresh 200 OK DES streams)
+  try {
+    const targetUrl = `https://www.jiosaavn.com/api.php?${queryStr}`;
+    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`);
+    if (res.ok) {
+      const wrapper = await res.json();
+      if (wrapper && wrapper.contents) {
+        const data = parseJsonSafe(wrapper.contents);
+        if (data && (data.results || data.songs || data.topquery || Array.isArray(data))) {
+          return data;
+        }
+      }
     }
   } catch (_) {}
 
@@ -432,20 +433,19 @@ async function fetchJioSaavnApi(params) {
     }
   } catch (_) {}
 
-  // Try 4: AllOrigins GET Wrapper
-  try {
-    const targetUrl = `https://www.jiosaavn.com/api.php?${queryStr}`;
-    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`);
-    if (res.ok) {
-      const wrapper = await res.json();
-      if (wrapper && wrapper.contents) {
-        const data = parseJsonSafe(wrapper.contents);
-        if (data && (data.results || data.songs || data.topquery || Array.isArray(data))) {
-          return data;
+  // Try 4: Dedicated Public Saavn API Engine fallback
+  if (query) {
+    try {
+      const res = await fetch(`https://jiosaavn-api-beta.vercel.app/search/songs?query=${encodeURIComponent(query)}&limit=25`);
+      if (res.ok) {
+        const json = await res.json();
+        const results = json.data?.results || json.results || [];
+        if (results.length > 0) {
+          return { results };
         }
       }
-    }
-  } catch (_) {}
+    } catch (_) {}
+  }
 
   return null;
 }
