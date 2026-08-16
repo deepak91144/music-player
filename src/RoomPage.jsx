@@ -58,6 +58,7 @@ export default function RoomPage({ djSession, setDjSession, children }) {
     return localStorage.getItem('room_bg_theme') || 'romantic';
   });
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isCallSpeaking, setIsCallSpeaking] = useState(false);
 
   const myName = auth.currentUser ? generateUserName(auth.currentUser.uid) : "You";
@@ -106,20 +107,8 @@ export default function RoomPage({ djSession, setDjSession, children }) {
 
       {/* Header */}
       <div className="room-header">
-        <div className="theme-selector-container">
-          <span className="theme-label">Theme:</span>
-          <div className="theme-pills">
-            {THEMES.map((theme) => (
-              <button
-                key={theme.id}
-                className={`theme-pill-btn ${currentTheme === theme.id ? 'active' : ''}`}
-                onClick={() => handleThemeChange(theme.id)}
-                title={`Switch to ${theme.name} background theme`}
-              >
-                {theme.name}
-              </button>
-            ))}
-          </div>
+        <div className="room-header-title">
+          <span className="room-title-badge">🎵 Listening Session</span>
         </div>
 
         <button className="leave-room-btn" onClick={() => setDjSession(null)}>
@@ -158,6 +147,50 @@ export default function RoomPage({ djSession, setDjSession, children }) {
           </div>
           <LiveChat roomId={djSession.roomId} onSpeakingChange={setIsCallSpeaking} />
         </div>
+      </div>
+
+      {/* Floating Theme Button & Popup Menu (Bottom Left) */}
+      <div className="floating-theme-wrapper">
+        {isThemeMenuOpen && (
+          <div className="floating-theme-menu">
+            <div className="floating-theme-header">
+              <span>🎨 Choose Theme</span>
+              <button 
+                type="button" 
+                className="theme-menu-close-btn" 
+                onClick={() => setIsThemeMenuOpen(false)}
+                title="Close Theme Menu"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="floating-theme-options">
+              {THEMES.map((theme) => (
+                <button
+                  key={theme.id}
+                  className={`theme-option-btn ${currentTheme === theme.id ? 'active' : ''}`}
+                  onClick={() => {
+                    handleThemeChange(theme.id);
+                    setIsThemeMenuOpen(false);
+                  }}
+                  title={`Switch to ${theme.name}`}
+                >
+                  <span className="theme-option-name">{theme.name}</span>
+                  {currentTheme === theme.id && <span className="theme-check-icon">✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button 
+          className={`floating-theme-btn ${isThemeMenuOpen ? 'active' : ''}`}
+          onClick={() => setIsThemeMenuOpen(prev => !prev)}
+          title="Choose Room Theme"
+        >
+          <span className="floating-theme-icon">🎨</span>
+          <span className="floating-theme-label">Themes</span>
+        </button>
       </div>
 
       {/* Floating Chat Icon Button (Only visible when sidebar is closed) */}

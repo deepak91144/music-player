@@ -141,6 +141,7 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
 
   // Speech Activity Detection (VAD) states & refs
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isCallDocSpeaking, setIsCallDocSpeaking] = useState(false);
   const isSpeakingRef = useRef(false);
   const vadAudioCtxRef = useRef(null);
   const vadAnalyserLocalRef = useRef(null);
@@ -232,7 +233,7 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
     return () => unsubscribe();
   }, [roomId]);
 
-  // WebRTC Signaling Listener - Always active when roomId is available
+  // WebRTC Signaling & Call Speech Sync Listener
   useEffect(() => {
     if (!roomId) return;
 
@@ -240,6 +241,7 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
 
     const unsubscribe = onSnapshot(callDocRef, (snapshot) => {
       if (!snapshot.exists()) {
+        setIsCallDocSpeaking(false);
         if (callStatusRef.current !== 'idle') {
           cleanupCall();
         }
@@ -261,14 +263,40 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
         pcRef.current.setRemoteDescription(rtcAnswer).catch(err => console.warn('SetRemoteDescription error:', err));
         setCallStatus('connected');
       }
+
+      // Sync speech ducking status from either user in the room
+      const now = Date.now();
+      if (data.isSpeaking && now - (data.lastSpeakingTime || 0) < 3500) {
+        setIsCallDocSpeaking(true);
+      } else {
+        setIsCallDocSpeaking(false);
+      }
     });
 
     return () => unsubscribe();
   }, [roomId]);
 
+  // Sync local speaking state to Firestore so partner's player ducks instantly
+  useEffect(() => {
+    if (!roomId || callStatus !== 'connected') return;
+    const callDocRef = doc(db, 'room_calls', roomId);
+    setDoc(callDocRef, {
+      isSpeaking: isSpeaking,
+      lastSpeakingTime: isSpeaking ? Date.now() : 0
+    }, { merge: true }).catch(() => {});
+  }, [isSpeaking, roomId, callStatus]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, typingUsers, isRecording, callStatus]);
+
+  // Notify parent component to duck music volume when calling, incoming call ringing, or speaking during call
+  useEffect(() => {
+    const isDuckNeeded = callStatus === 'incoming' || callStatus === 'calling' || isSpeaking || isCallDocSpeaking;
+    if (onSpeakingChange) {
+      onSpeakingChange(isDuckNeeded);
+    }
+  }, [callStatus, isSpeaking, isCallDocSpeaking, onSpeakingChange]);
 
   // Clean up Voice Activity Detection (VAD) audio analyzer
   const stopSpeechDetection = () => {
@@ -289,7 +317,6 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
     if (isSpeakingRef.current) {
       isSpeakingRef.current = false;
       setIsSpeaking(false);
-      if (onSpeakingChange) onSpeakingChange(false);
     }
   };
 
@@ -367,7 +394,6 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
           if (!isSpeakingRef.current) {
             isSpeakingRef.current = true;
             setIsSpeaking(true);
-            if (onSpeakingChange) onSpeakingChange(true);
           }
         } else {
           // Keep ducking active for ~800ms during natural speech pauses
@@ -375,7 +401,6 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
             silenceTimeoutRef.current = setTimeout(() => {
               isSpeakingRef.current = false;
               setIsSpeaking(false);
-              if (onSpeakingChange) onSpeakingChange(false);
               silenceTimeoutRef.current = null;
             }, 800);
           }
@@ -392,7 +417,7 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
     return () => {
       stopSpeechDetection();
     };
-  }, [callStatus, onSpeakingChange]);
+  }, [callStatus]);
 
   const formatTime = (ts) => {
     if (!ts) return '';
@@ -425,6 +450,7 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
     setCallStatus('idle');
     setIsMicMuted(false);
     setIncomingCallData(null);
+    setIsCallDocSpeaking(false);
   };
 
   // Start WebRTC Live Call inside LiveChat
