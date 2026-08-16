@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { db, signInAnonymousUser, generateUserName } from './firebase';
+import { LOCAL_TRACKS } from './jiosaavnService';
 import './CassettePlayer.css';
 
 export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTrackIndex, djSession, setDjSession, isCallSpeaking, duckRatio = 0.4 }) {
@@ -238,6 +239,19 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
   const handleAudioError = () => {
     setIsLoading(false);
     console.error('Audio failed to load:', currentTrack.src);
+    
+    // Fallback to matching local track or next track if stream fails to play
+    const songTitleLower = (currentTrack.title || '').toLowerCase();
+    const fallback = LOCAL_TRACKS.find(t => songTitleLower.includes(t.title.toLowerCase()) || t.title.toLowerCase().includes(songTitleLower)) || LOCAL_TRACKS[0];
+    
+    if (fallback && audioRef.current && currentTrack.src !== fallback.src) {
+      console.warn(`Stream load failed. Falling back to local track for ${currentTrack.title}`);
+      audioRef.current.src = fallback.src;
+      audioRef.current.load();
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => handleNext());
+    } else {
+      handleNext();
+    }
   };
 
   // Controls
