@@ -92,7 +92,7 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
   const activeThemeClass = THEMES.find(t => t.id === currentTheme)?.class || '';
 
   return (
-    <div className={`room-container ${activeThemeClass}`}>
+    <div className={`room-page-container ${activeThemeClass}`}>
       {/* Call Notice Banner */}
       {callNotice && (
         <div className="room-call-banner">

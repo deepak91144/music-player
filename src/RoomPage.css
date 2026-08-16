@@ -703,7 +703,7 @@
 }
 
 @media (max-width: 900px) {
-  .room-container {
+  .room-page-container {
     height: 100vh;
     height: 100dvh;
     display: flex;
