@@ -92,8 +92,7 @@ export default function JioSaavnExplorer({ isOpen, onClose, onPlayTrack, onAddTo
           </button>
         </div>
 
-        {/* Search Bar Wrapper (Commented Out) */}
-        {/* 
+        {/* Search Bar Wrapper */}
         <div className="jio-search-box">
           <svg className="jio-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <circle cx="11" cy="11" r="8"></circle>
@@ -146,7 +145,6 @@ export default function JioSaavnExplorer({ isOpen, onClose, onPlayTrack, onAddTo
             </div>
           )}
         </div>
-        */}
 
         {/* Category Pills */}
         <div className="jio-categories-scroll">

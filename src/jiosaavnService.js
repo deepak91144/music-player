@@ -1,11 +1,15 @@
 import CryptoJS from 'crypto-js';
 
-// Decryption key for JioSaavn encrypted_media_url (API Disabled as per request)
+// Decryption key for JioSaavn encrypted_media_url
 const DES_KEY = '38346591';
+
+// Hosted CORS-enabled JioSaavn API endpoints
+const HOSTED_API_PRIMARY = 'https://jiosaavn-api-beta.vercel.app';
+const HOSTED_API_SECONDARY = 'https://saavn.me';
 
 /**
  * LOCAL AUDIO TRACKS COLLECTION
- * 20 High-Quality Local Audio Tracks stored in public/audio/
+ * High-Quality Local Audio Tracks stored in public/audio/
  */
 export const LOCAL_TRACKS = [
   {
@@ -211,11 +215,36 @@ export const LOCAL_TRACKS = [
 ];
 
 /**
- * Decrypts encrypted_media_url (Disabled - API muted)
+ * Decrypts encrypted_media_url to a streamable audio URL
  */
 export function decryptMediaUrl(encryptedUrl) {
-  /* API DISABLED - Using Local MP3 Audio Files */
-  return null;
+  if (!encryptedUrl) return null;
+  try {
+    const key = CryptoJS.enc.Utf8.parse(DES_KEY);
+    const decrypted = CryptoJS.DES.decrypt(
+      { ciphertext: CryptoJS.enc.Base64.parse(encryptedUrl) },
+      key,
+      { mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.Pkcs7 }
+    );
+    let url = decrypted.toString(CryptoJS.enc.Utf8);
+    if (!url) return null;
+
+    // Convert http to https to prevent Mixed Content errors on hosted sites
+    url = url.replace('http://', 'https://');
+
+    if (url.includes('_96.mp4')) {
+      url = url.replace('_96.mp4', '_320.mp4');
+    } else if (url.includes('_160.mp4')) {
+      url = url.replace('_160.mp4', '_320.mp4');
+    } else if (url.includes('_96.mp3')) {
+      url = url.replace('_96.mp3', '_320.mp3');
+    }
+
+    return url;
+  } catch (err) {
+    console.error('Failed to decrypt JioSaavn media URL:', err);
+    return null;
+  }
 }
 
 /**
@@ -233,52 +262,212 @@ export function sanitizeText(text) {
 }
 
 /**
- * Upgrades image URL
+ * Upgrades image URL to high resolution
  */
 export function getHighResImage(imageUrl) {
   if (!imageUrl) return '/album_midnight.png';
-  return imageUrl;
+  if (Array.isArray(imageUrl)) {
+    const high = imageUrl.find(i => i.quality === '500x500') || imageUrl[imageUrl.length - 1];
+    return high ? high.link.replace('http://', 'https://') : '/album_midnight.png';
+  }
+  return imageUrl
+    .replace('150x150', '500x500')
+    .replace('50x50', '500x500')
+    .replace('http://', 'https://');
 }
 
 /**
- * Formats raw song object into Track object
+ * Standardize track response from Hosted Saavn API or Official API
  */
-export function formatJioSaavnTrack(rawSong) {
-  return rawSong;
+export function formatJioSaavnTrack(song) {
+  if (!song) return null;
+
+  // Check if hosted API format (has downloadUrl or name property)
+  if (song.downloadUrl || song.name) {
+    let streamUrl = null;
+    if (Array.isArray(song.downloadUrl) && song.downloadUrl.length > 0) {
+      const high = song.downloadUrl.find(d => d.quality === '320kbps') ||
+                   song.downloadUrl.find(d => d.quality === '160kbps') ||
+                   song.downloadUrl[song.downloadUrl.length - 1];
+      streamUrl = high ? high.link.replace('http://', 'https://') : null;
+    }
+
+    let coverUrl = getHighResImage(song.image);
+
+    let artistName = song.primaryArtists || 
+                     (song.artists?.primary?.map(a => a.name).join(', ')) || 
+                     song.singers || 
+                     'Unknown Artist';
+
+    return {
+      id: song.id || `saavn_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      title: sanitizeText(song.name || song.title),
+      artist: sanitizeText(artistName),
+      album: sanitizeText(song.album?.name || song.album || 'JioSaavn Single'),
+      genre: song.language ? (song.language.charAt(0).toUpperCase() + song.language.slice(1)) : 'Bollywood',
+      cover: coverUrl,
+      src: streamUrl,
+      duration: parseInt(song.duration || 0, 10),
+      year: song.year || '',
+      language: song.language || 'Hindi',
+      hasLyrics: song.hasLyrics === 'true' || song.hasLyrics === true || song.has_lyrics === 'true',
+      isJioSaavn: true,
+      raw: song
+    };
+  }
+
+  // Official raw API response format
+  const moreInfo = song.more_info || {};
+  let artistName = 'Unknown Artist';
+  if (moreInfo.artistMap && moreInfo.artistMap.primary_artists && moreInfo.artistMap.primary_artists.length > 0) {
+    artistName = moreInfo.artistMap.primary_artists.map(a => sanitizeText(a.name)).join(', ');
+  } else if (song.primary_artists) {
+    artistName = sanitizeText(song.primary_artists);
+  } else if (moreInfo.music) {
+    artistName = sanitizeText(moreInfo.music);
+  } else if (song.singers) {
+    artistName = sanitizeText(song.singers);
+  }
+
+  let mediaUrl = null;
+  if (moreInfo.encrypted_media_url) {
+    mediaUrl = decryptMediaUrl(moreInfo.encrypted_media_url);
+  } else if (song.encrypted_media_url) {
+    mediaUrl = decryptMediaUrl(song.encrypted_media_url);
+  } else if (moreInfo.vlink) {
+    mediaUrl = moreInfo.vlink;
+  }
+
+  return {
+    id: song.id || `saavn_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    title: sanitizeText(song.title),
+    artist: artistName,
+    album: sanitizeText(moreInfo.album || song.album || 'JioSaavn Single'),
+    genre: song.language ? (song.language.charAt(0).toUpperCase() + song.language.slice(1)) : 'Bollywood',
+    cover: getHighResImage(song.image),
+    src: mediaUrl,
+    duration: parseInt(moreInfo.duration || song.duration || 0, 10),
+    year: song.year || moreInfo.year || '',
+    language: song.language || 'Hindi',
+    hasLyrics: moreInfo.has_lyrics === 'true' || song.has_lyrics === 'true',
+    isJioSaavn: true,
+    raw: song
+  };
 }
 
 /**
- * Search local songs collection
+ * Search songs across hosted CORS endpoints and fallbacks
  */
 export async function searchSongs(query, page = 1, limit = 20) {
   if (!query || !query.trim()) return LOCAL_TRACKS;
 
-  const q = query.toLowerCase().trim();
+  const q = query.trim();
 
-  // If searching for KK specifically, return KK songs
-  if (q.includes('kk')) {
-    return LOCAL_TRACKS.filter(t => t.artist.toLowerCase().includes('kk'));
+  // Try 1: Primary CORS-enabled Hosted Saavn API
+  try {
+    const url = `${HOSTED_API_PRIMARY}/search/songs?query=${encodeURIComponent(q)}&page=${page}&limit=${limit}`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      const results = data.data?.results || data.results;
+      if (Array.isArray(results) && results.length > 0) {
+        return results.map(formatJioSaavnTrack).filter(t => t && t.src);
+      }
+    }
+  } catch (err) {
+    console.warn('Hosted Saavn API (Primary) failed, trying secondary fallback...', err);
   }
 
-  const results = LOCAL_TRACKS.filter(t => 
-    t.title.toLowerCase().includes(q) ||
-    t.artist.toLowerCase().includes(q) ||
-    t.album.toLowerCase().includes(q) ||
-    t.genre.toLowerCase().includes(q)
+  // Try 2: Secondary CORS-enabled Hosted Saavn API
+  try {
+    const url = `${HOSTED_API_SECONDARY}/search/songs?query=${encodeURIComponent(q)}&page=${page}&limit=${limit}`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      const results = data.data?.results || data.results;
+      if (Array.isArray(results) && results.length > 0) {
+        return results.map(formatJioSaavnTrack).filter(t => t && t.src);
+      }
+    }
+  } catch (err) {
+    console.warn('Hosted Saavn API (Secondary) failed, trying local proxy...', err);
+  }
+
+  // Try 3: Local Vite Proxy (works in local dev mode)
+  try {
+    const queryParams = new URLSearchParams({
+      __call: 'search.getResults',
+      q: q,
+      n: limit,
+      p: page,
+      _format: 'json',
+      _marker: '0',
+      api_version: '4',
+      ctx: 'web'
+    });
+    const res = await fetch(`/saavn-api/api.php?${queryParams.toString()}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.results)) {
+        return data.results.map(formatJioSaavnTrack).filter(t => t && t.src);
+      }
+    }
+  } catch (_) {
+    // Proxy not active (e.g. hosted static deployment)
+  }
+
+  // Fallback to searching local tracks
+  const qLower = q.toLowerCase();
+  const filteredLocal = LOCAL_TRACKS.filter(t => 
+    t.title.toLowerCase().includes(qLower) ||
+    t.artist.toLowerCase().includes(qLower) ||
+    t.album.toLowerCase().includes(qLower) ||
+    t.genre.toLowerCase().includes(qLower)
   );
 
-  return results.length > 0 ? results : LOCAL_TRACKS;
+  return filteredLocal.length > 0 ? filteredLocal : LOCAL_TRACKS;
 }
 
 /**
- * Autocomplete search for local songs
+ * Autocomplete search for live search bar suggestions
  */
 export async function autocompleteSearch(query) {
   if (!query || !query.trim()) return null;
 
-  const q = query.toLowerCase().trim();
+  const q = query.trim();
+
+  try {
+    const res = await fetch(`${HOSTED_API_PRIMARY}/search/all?query=${encodeURIComponent(q)}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.data) {
+        return {
+          topquery: {
+            data: json.data.topQuery?.results?.map(item => ({
+              title: item.title,
+              image: getHighResImage(item.image),
+              type: item.type,
+              description: item.description
+            })) || []
+          },
+          songs: {
+            data: json.data.songs?.results?.map(s => ({
+              title: s.title,
+              image: getHighResImage(s.image),
+              description: s.description || s.singers || s.primaryArtists
+            })) || []
+          }
+        };
+      }
+    }
+  } catch (_) {
+    // Hosted autocomplete failed
+  }
+
+  // Local autocomplete fallback
   const matches = LOCAL_TRACKS.filter(t => 
-    t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q)
+    t.title.toLowerCase().includes(q.toLowerCase()) || 
+    t.artist.toLowerCase().includes(q.toLowerCase())
   );
 
   if (matches.length === 0) return null;
@@ -295,9 +484,21 @@ export async function autocompleteSearch(query) {
 }
 
 /**
- * Get song details
+ * Get song details by ID
  */
 export async function getSongDetails(songId) {
+  if (!songId) return null;
+
+  try {
+    const res = await fetch(`${HOSTED_API_PRIMARY}/songs?id=${encodeURIComponent(songId)}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.data && json.data[0]) {
+        return formatJioSaavnTrack(json.data[0]);
+      }
+    }
+  } catch (_) {}
+
   return LOCAL_TRACKS.find(t => t.id === songId) || LOCAL_TRACKS[0];
 }
 
@@ -305,15 +506,32 @@ export async function getSongDetails(songId) {
  * Get song lyrics
  */
 export async function getLyrics(songId) {
+  if (!songId) return null;
+
+  try {
+    const res = await fetch(`${HOSTED_API_PRIMARY}/lyrics?id=${encodeURIComponent(songId)}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.data && json.data.lyrics) {
+        return sanitizeText(json.data.lyrics).replace(/<br\s*\/?>/gi, '\n');
+      }
+    }
+  } catch (_) {}
+
   return null;
 }
 
 /**
- * Curated song categories
+ * Curated song categories for instant discovery
  */
 export const TRENDING_CATEGORIES = [
-  { name: '💖 KK Best Romantic Songs', query: 'KK' },
-  { name: '✨ All Local Audio Tracks', query: 'All' },
-  { name: '🌹 Classic Hindi Romance', query: 'Romance' },
-  { name: '🎧 Lofi & Chill Beats', query: 'Lofi' },
+  { name: '💖 KK Best Romantic Songs', query: 'KK Romantic Songs' },
+  { name: '✨ KK Hits & Classics', query: 'KK Best Love Songs' },
+  { name: '🎧 KK Lofi & Acoustic', query: 'KK Lofi Romantic Songs' },
+  { name: '🌹 KK 2000s Romance', query: 'KK Hits 2000s Romance' },
+  { name: '💑 KK Romantic Duets', query: 'KK Romantic Duets' },
+  { name: '🌙 KK Midnight Melodies', query: 'KK Soulful Love Songs' },
+  { name: '✨ Arijit Singh Romantic', query: 'Arijit Singh Romantic Hits' },
+  { name: '🎸 Acoustic Love Hits', query: 'Unplugged Hindi Love Songs' },
 ];
+
