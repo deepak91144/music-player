@@ -511,6 +511,15 @@
   border: none;
 }
 
+/* Desktop wrapper for room bottom actions */
+.room-bottom-actions {
+  display: contents;
+}
+
+.floating-search-btn-room {
+  display: none;
+}
+
 /* Floating Theme Button & Popup Menu */
 .floating-theme-wrapper {
   position: fixed;
