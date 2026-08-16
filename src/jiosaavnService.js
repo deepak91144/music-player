@@ -3,10 +3,6 @@ import CryptoJS from 'crypto-js';
 // Decryption key for JioSaavn encrypted_media_url
 const DES_KEY = '38346591';
 
-// Hosted CORS-enabled JioSaavn API endpoints
-const HOSTED_API_PRIMARY = 'https://jiosaavn-api-beta.vercel.app';
-const HOSTED_API_SECONDARY = 'https://saavn.me';
-
 /**
  * LOCAL AUDIO TRACKS COLLECTION
  * High-Quality Local Audio Tracks stored in public/audio/
@@ -215,7 +211,7 @@ export const LOCAL_TRACKS = [
 ];
 
 /**
- * Decrypts encrypted_media_url to a streamable audio URL
+ * Decrypts encrypted_media_url into a streamable high quality 320kbps audio URL
  */
 export function decryptMediaUrl(encryptedUrl) {
   if (!encryptedUrl) return null;
@@ -229,15 +225,18 @@ export function decryptMediaUrl(encryptedUrl) {
     let url = decrypted.toString(CryptoJS.enc.Utf8);
     if (!url) return null;
 
-    // Convert http to https to prevent Mixed Content errors on hosted sites
+    // Convert http to https to prevent Mixed Content errors
     url = url.replace('http://', 'https://');
 
+    // Upgrade quality to 320kbps if available
     if (url.includes('_96.mp4')) {
       url = url.replace('_96.mp4', '_320.mp4');
     } else if (url.includes('_160.mp4')) {
       url = url.replace('_160.mp4', '_320.mp4');
     } else if (url.includes('_96.mp3')) {
       url = url.replace('_96.mp3', '_320.mp3');
+    } else if (url.includes('_160.mp3')) {
+      url = url.replace('_160.mp3', '_320.mp3');
     }
 
     return url;
@@ -262,7 +261,7 @@ export function sanitizeText(text) {
 }
 
 /**
- * Upgrades image URL to high resolution
+ * Upgrades image URL to 500x500
  */
 export function getHighResImage(imageUrl) {
   if (!imageUrl) return '/album_midnight.png';
@@ -277,147 +276,145 @@ export function getHighResImage(imageUrl) {
 }
 
 /**
- * Standardize track response from Hosted Saavn API or Official API
+ * Formats raw JioSaavn song object into standardized Track object
  */
-export function formatJioSaavnTrack(song) {
-  if (!song) return null;
+export function formatJioSaavnTrack(rawSong) {
+  if (!rawSong) return null;
 
-  // Check if hosted API format (has downloadUrl or name property)
-  if (song.downloadUrl || song.name) {
-    let streamUrl = null;
-    if (Array.isArray(song.downloadUrl) && song.downloadUrl.length > 0) {
-      const high = song.downloadUrl.find(d => d.quality === '320kbps') ||
-                   song.downloadUrl.find(d => d.quality === '160kbps') ||
-                   song.downloadUrl[song.downloadUrl.length - 1];
-      streamUrl = high ? high.link.replace('http://', 'https://') : null;
-    }
+  const moreInfo = rawSong.more_info || {};
 
-    let coverUrl = getHighResImage(song.image);
-
-    let artistName = song.primaryArtists || 
-                     (song.artists?.primary?.map(a => a.name).join(', ')) || 
-                     song.singers || 
-                     'Unknown Artist';
-
-    return {
-      id: song.id || `saavn_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-      title: sanitizeText(song.name || song.title),
-      artist: sanitizeText(artistName),
-      album: sanitizeText(song.album?.name || song.album || 'JioSaavn Single'),
-      genre: song.language ? (song.language.charAt(0).toUpperCase() + song.language.slice(1)) : 'Bollywood',
-      cover: coverUrl,
-      src: streamUrl,
-      duration: parseInt(song.duration || 0, 10),
-      year: song.year || '',
-      language: song.language || 'Hindi',
-      hasLyrics: song.hasLyrics === 'true' || song.hasLyrics === true || song.has_lyrics === 'true',
-      isJioSaavn: true,
-      raw: song
-    };
-  }
-
-  // Official raw API response format
-  const moreInfo = song.more_info || {};
+  // Extract primary artists
   let artistName = 'Unknown Artist';
   if (moreInfo.artistMap && moreInfo.artistMap.primary_artists && moreInfo.artistMap.primary_artists.length > 0) {
     artistName = moreInfo.artistMap.primary_artists.map(a => sanitizeText(a.name)).join(', ');
-  } else if (song.primary_artists) {
-    artistName = sanitizeText(song.primary_artists);
+  } else if (rawSong.primary_artists) {
+    artistName = sanitizeText(rawSong.primary_artists);
   } else if (moreInfo.music) {
     artistName = sanitizeText(moreInfo.music);
-  } else if (song.singers) {
-    artistName = sanitizeText(song.singers);
+  } else if (rawSong.singers) {
+    artistName = sanitizeText(rawSong.singers);
+  } else if (rawSong.primaryArtists) {
+    artistName = sanitizeText(rawSong.primaryArtists);
   }
 
+  // Decrypt media URL or get vlink preview
   let mediaUrl = null;
-  if (moreInfo.encrypted_media_url) {
-    mediaUrl = decryptMediaUrl(moreInfo.encrypted_media_url);
-  } else if (song.encrypted_media_url) {
-    mediaUrl = decryptMediaUrl(song.encrypted_media_url);
-  } else if (moreInfo.vlink) {
+  const encryptedUrl = moreInfo.encrypted_media_url || rawSong.encrypted_media_url;
+  if (encryptedUrl) {
+    mediaUrl = decryptMediaUrl(encryptedUrl);
+  }
+  if (!mediaUrl && moreInfo.vlink) {
     mediaUrl = moreInfo.vlink;
   }
+  if (!mediaUrl && rawSong.vlink) {
+    mediaUrl = rawSong.vlink;
+  }
+
+  // Fallback to local track audio src matching title if stream is unavailable
+  if (!mediaUrl) {
+    const songTitleLower = (rawSong.title || rawSong.name || '').toLowerCase();
+    const localMatch = LOCAL_TRACKS.find(t => songTitleLower.includes(t.title.toLowerCase()) || t.title.toLowerCase().includes(songTitleLower));
+    mediaUrl = localMatch ? localMatch.src : LOCAL_TRACKS[0].src;
+  }
+
+  const durationSec = parseInt(moreInfo.duration || rawSong.duration || 0, 10);
 
   return {
-    id: song.id || `saavn_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-    title: sanitizeText(song.title),
+    id: rawSong.id || `saavn_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    title: sanitizeText(rawSong.title || rawSong.name),
     artist: artistName,
-    album: sanitizeText(moreInfo.album || song.album || 'JioSaavn Single'),
-    genre: song.language ? (song.language.charAt(0).toUpperCase() + song.language.slice(1)) : 'Bollywood',
-    cover: getHighResImage(song.image),
+    album: sanitizeText(moreInfo.album || rawSong.album?.name || rawSong.album || 'JioSaavn Single'),
+    genre: rawSong.language ? (rawSong.language.charAt(0).toUpperCase() + rawSong.language.slice(1)) : 'Bollywood',
+    cover: getHighResImage(rawSong.image),
     src: mediaUrl,
-    duration: parseInt(moreInfo.duration || song.duration || 0, 10),
-    year: song.year || moreInfo.year || '',
-    language: song.language || 'Hindi',
-    hasLyrics: moreInfo.has_lyrics === 'true' || song.has_lyrics === 'true',
+    duration: durationSec,
+    year: rawSong.year || moreInfo.year || '',
+    language: rawSong.language || 'Hindi',
+    hasLyrics: moreInfo.has_lyrics === 'true' || rawSong.has_lyrics === 'true' || rawSong.hasLyrics === true,
     isJioSaavn: true,
-    raw: song
+    raw: rawSong
   };
 }
 
 /**
- * Search songs across hosted CORS endpoints and fallbacks
+ * Base fetcher querying official JioSaavn api.php with CORS proxy fallback
+ */
+async function fetchJioSaavnApi(params) {
+  const queryStr = new URLSearchParams(params).toString();
+  const targetUrl = `https://www.jiosaavn.com/api.php?${queryStr}`;
+
+  // Try 1: Local Vite proxy (works during `npm run dev`)
+  try {
+    const res = await fetch(`/saavn-api/api.php?${queryStr}`);
+    if (res.ok) {
+      const text = await res.text();
+      if (text && text.trim().startsWith('{')) {
+        return JSON.parse(text);
+      }
+    }
+  } catch (_) {}
+
+  // Try 2: Direct call
+  try {
+    const res = await fetch(targetUrl);
+    if (res.ok) {
+      const text = await res.text();
+      if (text && text.trim().startsWith('{')) {
+        return JSON.parse(text);
+      }
+    }
+  } catch (_) {}
+
+  // Try 3: Public CORS proxies in order
+  const corsProxies = [
+    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    url => `https://corsproxy.org/?${encodeURIComponent(url)}`,
+    url => `https://api.cors.lol/?url=${encodeURIComponent(url)}`
+  ];
+
+  for (const getProxyUrl of corsProxies) {
+    try {
+      const proxyUrl = getProxyUrl(targetUrl);
+      const res = await fetch(proxyUrl);
+      if (res.ok) {
+        const text = await res.text();
+        if (text && text.trim().startsWith('{')) {
+          const data = JSON.parse(text);
+          if (data && (data.results || data.songs || data.topquery || Array.isArray(data))) {
+            return data;
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  return null;
+}
+
+/**
+ * Search songs on JioSaavn
  */
 export async function searchSongs(query, page = 1, limit = 20) {
   if (!query || !query.trim()) return LOCAL_TRACKS;
 
-  const q = query.trim();
+  const data = await fetchJioSaavnApi({
+    __call: 'search.getResults',
+    q: query.trim(),
+    n: limit,
+    p: page,
+    _format: 'json',
+    _marker: '0',
+    api_version: '4',
+    ctx: 'web'
+  });
 
-  // Try 1: Primary CORS-enabled Hosted Saavn API
-  try {
-    const url = `${HOSTED_API_PRIMARY}/search/songs?query=${encodeURIComponent(q)}&page=${page}&limit=${limit}`;
-    const res = await fetch(url);
-    if (res.ok) {
-      const data = await res.json();
-      const results = data.data?.results || data.results;
-      if (Array.isArray(results) && results.length > 0) {
-        return results.map(formatJioSaavnTrack).filter(t => t && t.src);
-      }
-    }
-  } catch (err) {
-    console.warn('Hosted Saavn API (Primary) failed, trying secondary fallback...', err);
-  }
-
-  // Try 2: Secondary CORS-enabled Hosted Saavn API
-  try {
-    const url = `${HOSTED_API_SECONDARY}/search/songs?query=${encodeURIComponent(q)}&page=${page}&limit=${limit}`;
-    const res = await fetch(url);
-    if (res.ok) {
-      const data = await res.json();
-      const results = data.data?.results || data.results;
-      if (Array.isArray(results) && results.length > 0) {
-        return results.map(formatJioSaavnTrack).filter(t => t && t.src);
-      }
-    }
-  } catch (err) {
-    console.warn('Hosted Saavn API (Secondary) failed, trying local proxy...', err);
-  }
-
-  // Try 3: Local Vite Proxy (works in local dev mode)
-  try {
-    const queryParams = new URLSearchParams({
-      __call: 'search.getResults',
-      q: q,
-      n: limit,
-      p: page,
-      _format: 'json',
-      _marker: '0',
-      api_version: '4',
-      ctx: 'web'
-    });
-    const res = await fetch(`/saavn-api/api.php?${queryParams.toString()}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && Array.isArray(data.results)) {
-        return data.results.map(formatJioSaavnTrack).filter(t => t && t.src);
-      }
-    }
-  } catch (_) {
-    // Proxy not active (e.g. hosted static deployment)
+  if (data && Array.isArray(data.results) && data.results.length > 0) {
+    return data.results.map(formatJioSaavnTrack).filter(t => t !== null && t.src);
   }
 
   // Fallback to searching local tracks
-  const qLower = q.toLowerCase();
+  const qLower = query.toLowerCase().trim();
   const filteredLocal = LOCAL_TRACKS.filter(t => 
     t.title.toLowerCase().includes(qLower) ||
     t.artist.toLowerCase().includes(qLower) ||
@@ -434,40 +431,20 @@ export async function searchSongs(query, page = 1, limit = 20) {
 export async function autocompleteSearch(query) {
   if (!query || !query.trim()) return null;
 
-  const q = query.trim();
+  const data = await fetchJioSaavnApi({
+    __call: 'autocomplete.get',
+    query: query.trim(),
+    _format: 'json',
+    _marker: '0',
+    ctx: 'web'
+  });
 
-  try {
-    const res = await fetch(`${HOSTED_API_PRIMARY}/search/all?query=${encodeURIComponent(q)}`);
-    if (res.ok) {
-      const json = await res.json();
-      if (json.data) {
-        return {
-          topquery: {
-            data: json.data.topQuery?.results?.map(item => ({
-              title: item.title,
-              image: getHighResImage(item.image),
-              type: item.type,
-              description: item.description
-            })) || []
-          },
-          songs: {
-            data: json.data.songs?.results?.map(s => ({
-              title: s.title,
-              image: getHighResImage(s.image),
-              description: s.description || s.singers || s.primaryArtists
-            })) || []
-          }
-        };
-      }
-    }
-  } catch (_) {
-    // Hosted autocomplete failed
-  }
+  if (data) return data;
 
   // Local autocomplete fallback
   const matches = LOCAL_TRACKS.filter(t => 
-    t.title.toLowerCase().includes(q.toLowerCase()) || 
-    t.artist.toLowerCase().includes(q.toLowerCase())
+    t.title.toLowerCase().includes(query.toLowerCase()) || 
+    t.artist.toLowerCase().includes(query.toLowerCase())
   );
 
   if (matches.length === 0) return null;
@@ -484,20 +461,23 @@ export async function autocompleteSearch(query) {
 }
 
 /**
- * Get song details by ID
+ * Get song details
  */
 export async function getSongDetails(songId) {
   if (!songId) return null;
 
-  try {
-    const res = await fetch(`${HOSTED_API_PRIMARY}/songs?id=${encodeURIComponent(songId)}`);
-    if (res.ok) {
-      const json = await res.json();
-      if (json.data && json.data[0]) {
-        return formatJioSaavnTrack(json.data[0]);
-      }
-    }
-  } catch (_) {}
+  const data = await fetchJioSaavnApi({
+    __call: 'song.getDetails',
+    pids: songId,
+    _format: 'json',
+    _marker: '0',
+    api_version: '4',
+    ctx: 'web'
+  });
+
+  if (data && data[songId]) {
+    return formatJioSaavnTrack(data[songId]);
+  }
 
   return LOCAL_TRACKS.find(t => t.id === songId) || LOCAL_TRACKS[0];
 }
@@ -508,15 +488,18 @@ export async function getSongDetails(songId) {
 export async function getLyrics(songId) {
   if (!songId) return null;
 
-  try {
-    const res = await fetch(`${HOSTED_API_PRIMARY}/lyrics?id=${encodeURIComponent(songId)}`);
-    if (res.ok) {
-      const json = await res.json();
-      if (json.data && json.data.lyrics) {
-        return sanitizeText(json.data.lyrics).replace(/<br\s*\/?>/gi, '\n');
-      }
-    }
-  } catch (_) {}
+  const data = await fetchJioSaavnApi({
+    __call: 'lyrics.getLyrics',
+    lyrics_id: songId,
+    _format: 'json',
+    _marker: '0',
+    api_version: '4',
+    ctx: 'web'
+  });
+
+  if (data && data.lyrics) {
+    return sanitizeText(data.lyrics).replace(/<br\s*\/?>/gi, '\n');
+  }
 
   return null;
 }
@@ -534,4 +517,5 @@ export const TRENDING_CATEGORIES = [
   { name: '✨ Arijit Singh Romantic', query: 'Arijit Singh Romantic Hits' },
   { name: '🎸 Acoustic Love Hits', query: 'Unplugged Hindi Love Songs' },
 ];
+
 
