@@ -666,37 +666,6 @@ export default function LiveChat({ roomId }) {
         </div>
       )}
 
-      {/* Live Chat Header */}
-      <div className="chat-header">
-        <h3>Live Chat</h3>
-
-        <div className="chat-call-actions">
-          {callStatus === 'idle' && (
-            <button type="button" className="chat-call-btn" onClick={startCall} title="Start Live Voice Call">
-              📞 Live Call
-            </button>
-          )}
-
-          {callStatus === 'calling' && (
-            <button type="button" className="chat-call-btn calling" onClick={endCall} title="Cancel Calling">
-              <span className="pulse-call-dot"></span> Calling... (Cancel)
-            </button>
-          )}
-
-          {callStatus === 'connected' && (
-            <div className="chat-active-call">
-              <span className="active-dot"></span>
-              <button type="button" className={`chat-mute-btn ${isMicMuted ? 'muted' : ''}`} onClick={toggleMuteMic}>
-                {isMicMuted ? '🔇 Unmute' : '🎙️ Mute'}
-              </button>
-              <button type="button" className="chat-end-call-btn" onClick={endCall} title="End Call">
-                🔴 End
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
       <div className="chat-messages">
         {messages.map((msg) => {
           const isMe = auth.currentUser?.uid === msg.senderId;
@@ -753,6 +722,20 @@ export default function LiveChat({ roomId }) {
 
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Connected Call Status Bar */}
+      {callStatus === 'connected' && (
+        <div className="chat-live-call-active-bar">
+          <span className="active-dot"></span>
+          <span className="active-call-label">🟢 Voice Call Active</span>
+          <button type="button" className="call-bar-mute-btn" onClick={toggleMuteMic}>
+            {isMicMuted ? '🔇 Unmute' : '🎙️ Mute'}
+          </button>
+          <button type="button" className="call-bar-end-btn" onClick={endCall}>
+            🔴 End
+          </button>
+        </div>
+      )}
 
       {/* Selected photo attachment preview before sending */}
       {selectedImage && (
@@ -818,7 +801,7 @@ export default function LiveChat({ roomId }) {
             </svg>
           </button>
 
-          {/* Live Mic Voice Note Record Button Only */}
+          {/* Live Mic Voice Note Record Button */}
           <button
             type="button"
             className="chat-action-icon-btn mic-btn"
@@ -832,6 +815,35 @@ export default function LiveChat({ roomId }) {
               <line x1="12" y1="19" x2="12" y2="22"></line>
             </svg>
           </button>
+
+          {/* Live Voice Call Action Button near Input */}
+          {callStatus === 'idle' && (
+            <button
+              type="button"
+              className="chat-action-icon-btn call-action-icon-btn"
+              onClick={startCall}
+              title="Start Live Voice Call"
+              disabled={isCompressing}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+              </svg>
+            </button>
+          )}
+
+          {callStatus === 'calling' && (
+            <button
+              type="button"
+              className="chat-action-icon-btn call-action-icon-btn calling"
+              onClick={endCall}
+              title="Cancel Calling"
+            >
+              <span className="pulse-call-dot"></span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+              </svg>
+            </button>
+          )}
 
           <input
             type="text"
