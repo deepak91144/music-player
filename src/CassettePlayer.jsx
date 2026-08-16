@@ -114,47 +114,47 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
     }
   }, [djSession?.isMaster, currentTrackIndex, djSession?.id]);
 
-  // Master/Slave synchronization for listening sessions
+  // Listener Sync Effect (Slave mode)
   useEffect(() => {
-    if (!djSession) return;
+    if (!djSession || djSession.isMaster) return;
 
     const sessionRef = doc(db, 'dj_sessions', djSession.id);
     const unsubscribe = onSnapshot(sessionRef, (snapshot) => {
       if (!snapshot.exists()) return;
       const data = snapshot.data();
 
-      if (!djSession.isMaster) {
-        if (data.currentTrack) {
-          const masterTrack = data.currentTrack;
-          const foundIdx = tracks.findIndex(t => (t.id && masterTrack.id && t.id === masterTrack.id) || (t.title && masterTrack.title && t.title === masterTrack.title));
+      const masterTrack = data.currentTrack;
+      const masterIsPlaying = data.isPlaying !== false;
 
-          if (foundIdx !== -1) {
-            if (foundIdx !== currentTrackIndex) {
-              setCurrentTrackIndex(foundIdx);
-            }
-          } else if (setTracks) {
-            setTracks(prev => {
-              const updated = [...prev, masterTrack];
-              setCurrentTrackIndex(updated.length - 1);
-              return updated;
-            });
-          }
-        } else if (data.currentTrackIndex !== undefined && data.currentTrackIndex !== currentTrackIndex) {
-          setCurrentTrackIndex(data.currentTrackIndex);
-        }
+      if (masterTrack) {
+        const foundIdx = tracks.findIndex(t => 
+          (t.id && masterTrack.id && t.id === masterTrack.id) || 
+          (t.title && masterTrack.title && t.title === masterTrack.title) ||
+          (t.ytId && masterTrack.ytId && t.ytId === masterTrack.ytId)
+        );
 
-        if (data.isPlaying !== undefined && data.isPlaying !== isPlaying) {
-          if (data.isPlaying) {
-            playMedia();
-          } else {
-            pauseMedia();
+        if (foundIdx !== -1) {
+          if (foundIdx !== currentTrackIndex) {
+            setCurrentTrackIndex(foundIdx);
           }
+        } else if (setTracks) {
+          setTracks(prev => {
+            const updated = [...prev, masterTrack];
+            setCurrentTrackIndex(updated.length - 1);
+            return updated;
+          });
         }
+      }
+
+      if (masterIsPlaying) {
+        setIsPlaying(true);
+      } else {
+        setIsPlaying(false);
       }
     });
 
     return () => unsubscribe();
-  }, [djSession, currentTrackIndex, isPlaying, tracks, setCurrentTrackIndex, setTracks]);
+  }, [djSession?.id, djSession?.isMaster, tracks, currentTrackIndex, setCurrentTrackIndex, setTracks]);
 
   const handleNext = useCallback(() => {
     if (!tracks || tracks.length <= 1) return;
@@ -201,7 +201,7 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
     setIsPlaying(false);
   };
 
-  // Handle Track Changes (Zero out timestamp & auto-play)
+  // Handle Track & Playback State Changes (Auto-play YouTube & HTML5)
   useEffect(() => {
     setIsLoading(true);
     setCurrentTime(0);
