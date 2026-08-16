@@ -59,7 +59,7 @@ export default function RoomPage({ djSession, setDjSession, children }) {
   });
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
-  const [isCallSpeaking, setIsCallSpeaking] = useState(false);
+  const [duckState, setDuckState] = useState({ isDucked: false, duckRatio: 1.0 });
 
   const myName = auth.currentUser ? generateUserName(auth.currentUser.uid) : "You";
   const partnerName = djSession.partnerName || "Partner";
@@ -120,7 +120,10 @@ export default function RoomPage({ djSession, setDjSession, children }) {
         <div className="room-player-section">
           <ListeningDuo djName={djName} listenerName={listenerName} />
           {React.isValidElement(children) 
-            ? React.cloneElement(children, { isCallSpeaking }) 
+            ? React.cloneElement(children, { 
+                isCallSpeaking: duckState.isDucked, 
+                duckRatio: duckState.duckRatio 
+              }) 
             : children}
         </div>
 
@@ -145,7 +148,10 @@ export default function RoomPage({ djSession, setDjSession, children }) {
               ✕
             </button>
           </div>
-          <LiveChat roomId={djSession.roomId} onSpeakingChange={setIsCallSpeaking} />
+          <LiveChat 
+            roomId={djSession.roomId} 
+            onSpeakingChange={(isDucked, ratio = 0.4) => setDuckState({ isDucked, duckRatio: ratio })} 
+          />
         </div>
       </div>
 

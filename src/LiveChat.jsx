@@ -290,13 +290,23 @@ export default function LiveChat({ roomId, onSpeakingChange }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, typingUsers, isRecording, callStatus]);
 
-  // Notify parent component to duck music volume when calling, incoming call ringing, or speaking during call
+  // Notify parent component to duck music volume during voice note recording (50%) or live calls (40%)
   useEffect(() => {
-    const isDuckNeeded = callStatus === 'incoming' || callStatus === 'calling' || isSpeaking || isCallDocSpeaking;
-    if (onSpeakingChange) {
-      onSpeakingChange(isDuckNeeded);
+    let isDuckNeeded = false;
+    let duckRatio = 1.0;
+
+    if (isRecording) {
+      isDuckNeeded = true;
+      duckRatio = 0.5; // 50% music volume while recording voice note
+    } else if (callStatus === 'incoming' || callStatus === 'calling' || isSpeaking || isCallDocSpeaking) {
+      isDuckNeeded = true;
+      duckRatio = 0.4; // 40% music volume during live calls & ringing
     }
-  }, [callStatus, isSpeaking, isCallDocSpeaking, onSpeakingChange]);
+
+    if (onSpeakingChange) {
+      onSpeakingChange(isDuckNeeded, duckRatio);
+    }
+  }, [isRecording, callStatus, isSpeaking, isCallDocSpeaking, onSpeakingChange]);
 
   // Clean up Voice Activity Detection (VAD) audio analyzer
   const stopSpeechDetection = () => {

@@ -3,7 +3,7 @@ import { doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { db, signInAnonymousUser, generateUserName } from './firebase';
 import './CassettePlayer.css';
 
-export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTrackIndex, djSession, setDjSession, isCallSpeaking }) {
+export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTrackIndex, djSession, setDjSession, isCallSpeaking, duckRatio = 0.4 }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -153,14 +153,14 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
     }
   }, [currentTrackIndex, currentTrack.src]);
 
-  // Smooth volume ducking when live call speech is active
+  // Smooth volume ducking when live call speech or voice note recording is active
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const baseVol = isMuted ? 0 : volume;
-    // Lower volume to 40% when someone is speaking or call is ringing over live call
-    const targetVol = isCallSpeaking ? baseVol * 0.4 : baseVol;
+    // Lower volume to duckRatio (50% for voice note recording, 40% for live calls/ringing)
+    const targetVol = isCallSpeaking ? baseVol * (duckRatio || 0.4) : baseVol;
 
     if (volumeRampRef.current) {
       clearInterval(volumeRampRef.current);
@@ -188,7 +188,7 @@ export default function CassettePlayer({ tracks, currentTrackIndex, setCurrentTr
         volumeRampRef.current = null;
       }
     };
-  }, [isCallSpeaking, volume, isMuted]);
+  }, [isCallSpeaking, duckRatio, volume, isMuted]);
 
   // Update progress via requestAnimationFrame
   const updateProgress = useCallback(() => {
