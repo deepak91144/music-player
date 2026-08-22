@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { addSongToFirestore } from './musicService';
 import './MusicExplorer.css';
 
-export default function MusicExplorer({ isOpen, onClose, onPlayTrack, onAddToQueue, onSyncS3, currentTrack }) {
+export default function MusicExplorer({ isOpen, onClose, onPlayTrack, onAddToQueue, onSyncS3, showToast, currentTrack }) {
   // Upload state
   const [customFile, setCustomFile] = useState(null);
   const [customUrl, setCustomUrl] = useState('');
@@ -152,6 +152,10 @@ export default function MusicExplorer({ isOpen, onClose, onPlayTrack, onAddToQue
     setCustomArtist('');
     setCustomCover('');
 
+    if (showToast) {
+      showToast(`🎉 "${newSong.title}" uploaded & ready to play!`);
+    }
+
     if (actionType === 'play') {
       onPlayTrack(newSong);
     } else if (onAddToQueue) {
@@ -200,9 +204,11 @@ export default function MusicExplorer({ isOpen, onClose, onPlayTrack, onAddToQue
                   border: '2px dashed rgba(255, 255, 255, 0.2)',
                   borderRadius: '8px',
                   color: '#fff',
-                  cursor: 'pointer'
+                  cursor: isUploading ? 'not-allowed' : 'pointer',
+                  opacity: isUploading ? 0.5 : 1
                 }}
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => !isUploading && fileInputRef.current?.click()}
+                disabled={isUploading}
               >
                 {customFile ? `🎵 Selected: ${customFile.name} (${(customFile.size / (1024 * 1024)).toFixed(2)} MB)` : '📁 Click to Choose Audio File'}
               </button>
@@ -214,9 +220,10 @@ export default function MusicExplorer({ isOpen, onClose, onPlayTrack, onAddToQue
                 <label style={{ color: '#ccc', fontSize: '0.8rem', display: 'block', marginBottom: '4px' }}>Song Title</label>
                 <input
                   type="text"
-                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff', opacity: isUploading ? 0.6 : 1 }}
                   placeholder="Title"
                   value={customTitle}
+                  disabled={isUploading}
                   onChange={(e) => setCustomTitle(e.target.value)}
                 />
               </div>
@@ -224,35 +231,70 @@ export default function MusicExplorer({ isOpen, onClose, onPlayTrack, onAddToQue
                 <label style={{ color: '#ccc', fontSize: '0.8rem', display: 'block', marginBottom: '4px' }}>Artist Name</label>
                 <input
                   type="text"
-                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff', opacity: isUploading ? 0.6 : 1 }}
                   placeholder="Artist"
                   value={customArtist}
+                  disabled={isUploading}
                   onChange={(e) => setCustomArtist(e.target.value)}
                 />
               </div>
             </div>
 
             {isUploading && (
-              <div style={{ color: '#00d2d3', fontSize: '0.88rem', marginTop: '8px' }}>
-                ⏳ {uploadStatus} {uploadProgress > 0 && `${uploadProgress}%`}
+              <div style={{ color: '#00d2d3', fontSize: '0.88rem', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="spinner" style={{ width: '14px', height: '14px', border: '2px solid rgba(0,210,211,0.3)', borderTopColor: '#00d2d3', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }}></span>
+                <span>{uploadStatus} {uploadProgress > 0 && `(${uploadProgress}%)`}</span>
               </div>
             )}
 
             <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
               <button
-                style={{ flex: 1, padding: '12px', background: '#ff4b72', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: isUploading ? 'rgba(255, 75, 114, 0.4)' : '#ff4b72',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  cursor: isUploading ? 'not-allowed' : 'pointer',
+                  opacity: isUploading ? 0.6 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
                 onClick={() => handleCreateCustomTrack('play')}
                 disabled={isUploading}
               >
-                 Upload Track
+                {isUploading ? (
+                  <>
+                    <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></span>
+                    <span>Uploading...</span>
+                  </>
+                ) : (
+                  '🚀 Upload Track'
+                )}
               </button>
               {onSyncS3 && (
                 <button
-                  style={{ padding: '12px 16px', background: 'rgba(255, 255, 255, 0.1)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
-                  onClick={() => {
-                    onSyncS3();
-                    onClose();
+                  style={{
+                    padding: '12px 16px',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    color: '#fff',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '6px',
+                    fontWeight: 'bold',
+                    cursor: isUploading ? 'not-allowed' : 'pointer',
+                    opacity: isUploading ? 0.5 : 1
                   }}
+                  onClick={() => {
+                    if (!isUploading) {
+                      onSyncS3();
+                      onClose();
+                    }
+                  }}
+                  disabled={isUploading}
                   title="Wipe broken links and sync all real songs from AWS S3"
                 >
                   🔄 Sync S3 Bucket

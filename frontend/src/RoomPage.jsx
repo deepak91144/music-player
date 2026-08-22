@@ -57,6 +57,11 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [callNotice, setCallNotice] = useState(null);
   const [duckState, setDuckState] = useState({ isDucked: false, duckRatio: 0.4 });
+  
+  // Message count indicators
+  const [totalMessages, setTotalMessages] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const lastReadCountRef = React.useRef(0);
 
   // Load saved theme on mount
   useEffect(() => {
@@ -69,6 +74,23 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
   const handleThemeChange = (themeId) => {
     setCurrentTheme(themeId);
     localStorage.setItem('room_theme', themeId);
+  };
+
+  const handleMessageCountChange = (count) => {
+    setTotalMessages(count);
+    if (!isChatOpen) {
+      setUnreadCount(Math.max(0, count - lastReadCountRef.current));
+    } else {
+      lastReadCountRef.current = count;
+      setUnreadCount(0);
+    }
+  };
+
+  const handleOpenChat = () => {
+    setIsChatOpen(true);
+    setIsThemeMenuOpen(false);
+    lastReadCountRef.current = totalMessages;
+    setUnreadCount(0);
   };
 
   const handleCallStatusChange = (status) => {
@@ -135,7 +157,9 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
         {/* Chat Section / Sidebar */}
         <div className={`room-chat-section ${isChatOpen ? 'mobile-open' : ''}`}>
           <div className="mobile-chat-header">
-            <span className="mobile-chat-title">💬 Live Room Chat</span>
+            <span className="mobile-chat-title">
+              💬 Live Room Chat {totalMessages > 0 && <span className="mobile-chat-badge">({totalMessages})</span>}
+            </span>
             <button 
               className="mobile-chat-close-btn" 
               onClick={() => setIsChatOpen(false)}
@@ -149,6 +173,7 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
             roomId={djSession.roomId} 
             onSpeakingChange={(isDucked, ratio = 0.4) => setDuckState({ isDucked, duckRatio: ratio })} 
             onCallStatusChange={handleCallStatusChange}
+            onMessageCountChange={handleMessageCountChange}
           />
         </div>
       </div>
@@ -200,19 +225,24 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
             </button>
           </div>
 
-          {/* Floating Chat Icon Button */}
+          {/* Floating Chat Icon Button with Message Counter Badge */}
           <button 
-            className="floating-chat-btn" 
-            onClick={() => {
-              setIsChatOpen(true);
-              setIsThemeMenuOpen(false);
-            }}
-            title="Open Live Chat"
+            className={`floating-chat-btn ${unreadCount > 0 ? 'has-new-messages' : ''}`}
+            onClick={handleOpenChat}
+            title={unreadCount > 0 ? `${unreadCount} new message${unreadCount > 1 ? 's' : ''}` : 'Open Live Chat'}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
+            <div className="floating-chat-icon-container">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              {(unreadCount > 0 || totalMessages > 0) && (
+                <span className={`chat-message-indicator-badge ${unreadCount > 0 ? 'is-unread' : 'is-total'}`}>
+                  {unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : (totalMessages > 99 ? '99+' : totalMessages)}
+                </span>
+              )}
+            </div>
             <span className="floating-chat-label">Chat</span>
+            {unreadCount > 0 && <span className="unread-pulse-dot" />}
           </button>
         </div>
       )}

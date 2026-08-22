@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import CassettePlayer from './CassettePlayer';
 import LiveFeed from './LiveFeed';
 import ReactionOverlay from './ReactionOverlay';
@@ -20,6 +20,7 @@ export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  const toastTimerRef = useRef(null);
 
   // Initialize djSession from localStorage
   const [djSession, setDjSession] = useState(() => {
@@ -77,13 +78,18 @@ export default function App() {
     }
   }, [djSession]);
 
-  const showToast = (msg) => {
+  const showToast = (msg, duration = 3500) => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage(null);
+    }, duration);
   };
 
   // Play a song directly from online search & trigger auto-play in cassette player
-  const handlePlayTrack = (song) => {
+  const handlePlayTrack = (song, shouldToast = true) => {
     let index = tracks.findIndex(t => t.id === song.id || t.title === song.title);
     if (index !== -1) {
       if (index === currentTrackIndex) {
@@ -101,7 +107,9 @@ export default function App() {
       });
     }
     setIsSearchOpen(false);
-    showToast(`▶ Now Playing: ${song.title}`);
+    if (shouldToast) {
+      showToast(`▶ Now Playing: ${song.title}`);
+    }
   };
 
   // Add song to playlist queue
@@ -142,8 +150,9 @@ export default function App() {
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
         onSyncS3={handleSyncWithS3}
+        showToast={showToast}
         onPlayTrack={(song) => {
-          handlePlayTrack(song);
+          handlePlayTrack(song, false);
           setIsUploadOpen(false);
         }}
         onAddToQueue={(song) => {

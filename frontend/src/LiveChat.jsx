@@ -134,7 +134,7 @@ function VoiceNotePlayer({ audioUrl, onPlayStateChange }) {
   );
 }
 
-export default function LiveChat({ roomId, onSpeakingChange, onCallStatusChange }) {
+export default function LiveChat({ roomId, onSpeakingChange, onCallStatusChange, onMessageCountChange }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
@@ -220,12 +220,15 @@ export default function LiveChat({ roomId, onSpeakingChange, onCallStatusChange 
       msgs.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
       
       setMessages(msgs);
+      if (onMessageCountChange) {
+        onMessageCountChange(msgs.length);
+      }
     }, (err) => {
       console.error("LiveChat listener error:", err);
     });
 
     return () => unsubscribe();
-  }, [roomId]);
+  }, [roomId, onMessageCountChange]);
 
   // Subscribe to real-time typing indicators in the room
   useEffect(() => {
