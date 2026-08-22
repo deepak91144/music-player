@@ -52,18 +52,19 @@ router.post('/presigned-url', async (req, res) => {
 });
 
 /**
- * GET /api/upload/stream/:key(*)
+ * GET /api/upload/stream/:folder/:file
  * Streams a file from S3 bypassing bucket public policies.
  */
-router.get('/stream/:key(*)', async (req, res) => {
+router.get('/stream/:folder/:file', async (req, res) => {
   try {
     if (!s3Client || !BUCKET_NAME) {
       return res.status(404).send('S3 not configured');
     }
     
+    const key = `${req.params.folder}/${req.params.file}`;
     const params = {
       Bucket: BUCKET_NAME,
-      Key: req.params.key,
+      Key: key,
     };
 
     if (req.headers.range) {
