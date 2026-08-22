@@ -7,9 +7,11 @@ import { s3Client, BUCKET_NAME } from '../config/aws.js';
 const router = express.Router();
 const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB max
 
+const region = process.env.AWS_REGION || 'ap-south-1';
+
 /**
  * GET /api/upload/s3-songs
- * Lists all valid audio files currently in the S3 bucket.
+ * Lists all valid audio files currently in the S3 bucket with direct global S3 URLs.
  */
 router.get('/s3-songs', async (req, res) => {
   try {
@@ -36,12 +38,13 @@ router.get('/s3-songs', async (req, res) => {
       .map(item => {
         const rawName = item.Key.split('/').pop().replace(/^\d+_/, '').replace(/\.[^/.]+$/, "");
         const formattedTitle = rawName.replace(/_/g, ' ');
+        const directS3Url = `https://${BUCKET_NAME}.s3.${region}.amazonaws.com/${item.Key}`;
         return {
           title: formattedTitle || 'Uploaded S3 Track',
           artist: 'Cloud Library',
           album: 'AWS S3',
           cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop',
-          src: `/api/upload/stream/${item.Key}`,
+          src: directS3Url,
           key: item.Key,
           size: item.Size,
           createdAt: item.LastModified ? new Date(item.LastModified).getTime() : Date.now()
@@ -82,7 +85,7 @@ router.post('/presigned-url', async (req, res) => {
     });
 
     const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
-    const publicStreamUrl = `/api/upload/stream/${objectKey}`;
+    const publicStreamUrl = `https://${BUCKET_NAME}.s3.${region}.amazonaws.com/${objectKey}`;
 
     return res.json({
       success: true,
