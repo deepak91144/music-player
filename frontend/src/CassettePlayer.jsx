@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { db, signInAnonymousUser, generateUserName } from './firebase';
-import { LOCAL_TRACKS } from './jiosaavnService';
 import './CassettePlayer.css';
 
-export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, setCurrentTrackIndex, djSession, setDjSession, isCallSpeaking, duckRatio = 0.4, onOpenSearch }) {
+export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, setCurrentTrackIndex, djSession, setDjSession, isCallSpeaking, duckRatio = 0.4, onOpenSearch, onOpenUpload }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -14,10 +13,6 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
   const [user, setUser] = useState(null);
 
   const audioRef = useRef(null);
-  const ytPlayerRef = useRef(null);
-  const ytContainerRef = useRef(null);
-  const isYtApiReadyRef = useRef(false);
-  const hasSeekedZeroRef = useRef(false);
   const hasSyncedRoomRef = useRef(false);
 
   const currentTrack = tracks[currentTrackIndex] || tracks[0] || {};
@@ -27,28 +22,6 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
     hasSyncedRoomRef.current = false;
   }, [djSession?.id]);
 
-  // Load YouTube iFrame API script on mount
-  useEffect(() => {
-    if (window.YT && window.YT.Player) {
-      isYtApiReadyRef.current = true;
-      return;
-    }
-
-    const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    const firstScriptTag = document.getElementsByTagName('script')[0];
-    if (firstScriptTag && firstScriptTag.parentNode) {
-      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-    } else {
-      document.head.appendChild(tag);
-    }
-
-    const prevReady = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => {
-      if (prevReady) prevReady();
-      isYtApiReadyRef.current = true;
-    };
-  }, []);
 
   // Sign in anonymously on mount
   useEffect(() => {
@@ -121,55 +94,14 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
   }, [djSession?.isMaster, currentTrackIndex, djSession?.id]);
 
   const playMedia = useCallback(() => {
-    if (currentTrack.ytId && ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
-      try {
-        if (audioRef.current) audioRef.current.pause();
-        ytPlayerRef.current.unMute();
-        ytPlayerRef.current.setVolume(100);
-        ytPlayerRef.current.playVideo();
-        setIsPlaying(true);
-      } catch (_) {}
-    } else if (audioRef.current) {
-      if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
-        try { ytPlayerRef.current.pauseVideo(); } catch (_) {}
-      }
+    if (audioRef.current) {
       audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
     }
   }, [currentTrack]);
 
   const forcePlayTrack = useCallback((track) => {
     if (!track) return;
-    if (track.ytId) {
-      const videoId = track.ytId;
-      const tryPlayYt = () => {
-        if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
-          try {
-            ytPlayerRef.current.loadVideoById({ videoId: videoId, startSeconds: 0 });
-            try { ytPlayerRef.current.seekTo(0, true); } catch (_) {}
-            ytPlayerRef.current.unMute();
-            ytPlayerRef.current.setVolume(100);
-            ytPlayerRef.current.playVideo();
-            setIsPlaying(true);
-            setIsLoading(false);
-            return true;
-          } catch (_) {}
-        }
-        return false;
-      };
-
-      if (!tryPlayYt()) {
-        let attempts = 0;
-        const timer = setInterval(() => {
-          attempts++;
-          if (tryPlayYt() || attempts > 20) {
-            clearInterval(timer);
-          }
-        }, 200);
-      }
-    } else if (track.src && audioRef.current) {
-      if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
-        try { ytPlayerRef.current.pauseVideo(); } catch (_) {}
-      }
+    if (track.src && audioRef.current) {
       audioRef.current.src = track.src;
       audioRef.current.load();
       try { audioRef.current.currentTime = 0; } catch (_) {}
@@ -224,39 +156,53 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
   }, [djSession?.id, djSession?.isMaster, tracks, currentTrackIndex, setCurrentTrackIndex, setTracks, forcePlayTrack]);
 
   const handleNext = useCallback(() => {
-    if (!tracks || tracks.length <= 1) return;
-    const nextIndex = (currentTrackIndex + 1) % tracks.length;
-    setCurrentTrackIndex(nextIndex);
-    if (djSession && djSession.isMaster) {
-      updateMasterSession(nextIndex, true);
+    if (!tracks || tracks.length === 0) return;
+    if (tracks.length === 1) {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {});
+      }
+      return;
     }
-  }, [tracks, currentTrackIndex, setCurrentTrackIndex, djSession, updateMasterSession]);
+    setCurrentTrackIndex(prev => {
+      const nextIndex = (prev + 1) % tracks.length;
+      if (djSession && djSession.isMaster) {
+        updateMasterSession(nextIndex, true);
+      }
+      return nextIndex;
+    });
+  }, [tracks, djSession, updateMasterSession]);
 
   const handlePrev = useCallback(() => {
-    if (!tracks || tracks.length <= 1) return;
-    const prevIndex = (currentTrackIndex - 1 + tracks.length) % tracks.length;
-    setCurrentTrackIndex(prevIndex);
-    if (djSession && djSession.isMaster) {
-      updateMasterSession(prevIndex, true);
+    if (!tracks || tracks.length === 0) return;
+    if (tracks.length === 1) {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {});
+      }
+      return;
     }
-  }, [tracks, currentTrackIndex, setCurrentTrackIndex, djSession, updateMasterSession]);
+    setCurrentTrackIndex(prev => {
+      const prevIndex = (prev - 1 + tracks.length) % tracks.length;
+      if (djSession && djSession.isMaster) {
+        updateMasterSession(prevIndex, true);
+      }
+      return prevIndex;
+    });
+  }, [tracks, djSession, updateMasterSession]);
 
   const pauseMedia = () => {
     if (audioRef.current) {
       try { audioRef.current.pause(); } catch (_) {}
     }
-    if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
-      try { ytPlayerRef.current.pauseVideo(); } catch (_) {}
-    }
     setIsPlaying(false);
   };
 
-  // Handle Track & Playback State Changes (Auto-play YouTube & HTML5)
+  // Handle Track & Playback State Changes (HTML5)
   useEffect(() => {
     setIsLoading(true);
     setCurrentTime(0);
     setDuration(currentTrack.duration || 240);
-    hasSeekedZeroRef.current = false;
 
     // Stop HTML5 audio
     if (audioRef.current) {
@@ -264,96 +210,15 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
       try { audioRef.current.currentTime = 0; } catch (_) {}
     }
 
-    // Handle YouTube track
-    if (currentTrack.ytId) {
-      const videoId = currentTrack.ytId;
-
-      const initOrLoadYt = () => {
-        if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
-          ytPlayerRef.current.loadVideoById({ videoId: videoId, startSeconds: 0 });
-          try { ytPlayerRef.current.seekTo(0, true); } catch (_) {}
-          try { ytPlayerRef.current.unMute(); } catch (_) {}
-          try { ytPlayerRef.current.setVolume(100); } catch (_) {}
-          try { ytPlayerRef.current.playVideo(); } catch (_) {}
-          setIsPlaying(true);
-          setIsLoading(false);
-        } else if (window.YT && window.YT.Player && ytContainerRef.current) {
-          ytPlayerRef.current = new window.YT.Player(ytContainerRef.current, {
-            height: '200',
-            width: '200',
-            videoId: videoId,
-            playerVars: {
-              autoplay: 1,
-              controls: 0,
-              disablekb: 1,
-              fs: 0,
-              rel: 0,
-              modestbranding: 1,
-              start: 0
-            },
-            events: {
-              onReady: (evt) => {
-                try { evt.target.unMute(); } catch (_) {}
-                try { evt.target.setVolume(100); } catch (_) {}
-                try { evt.target.seekTo(0, true); } catch (_) {}
-                evt.target.playVideo();
-                setIsPlaying(true);
-                setIsLoading(false);
-              },
-              onStateChange: (evt) => {
-                try { evt.target.unMute(); } catch (_) {}
-                try { evt.target.setVolume(100); } catch (_) {}
-                if (evt.data === window.YT.PlayerState.CUED) {
-                  evt.target.playVideo();
-                } else if (evt.data === window.YT.PlayerState.PLAYING) {
-                  if (!hasSeekedZeroRef.current) {
-                    hasSeekedZeroRef.current = true;
-                    try { evt.target.seekTo(0, true); } catch (_) {}
-                  }
-                  setIsPlaying(true);
-                  setIsLoading(false);
-                } else if (evt.data === window.YT.PlayerState.ENDED) {
-                  handleNext();
-                } else if (evt.data === window.YT.PlayerState.PAUSED) {
-                  setIsPlaying(false);
-                }
-              },
-              onError: () => {
-                setIsLoading(false);
-                handleNext();
-              }
-            }
-          });
-        }
-      };
-
-      if (window.YT && window.YT.Player) {
-        initOrLoadYt();
-      } else {
-        const timer = setInterval(() => {
-          if (window.YT && window.YT.Player) {
-            clearInterval(timer);
-            initOrLoadYt();
-          }
-        }, 200);
-        return () => clearInterval(timer);
-      }
-    } else if (currentTrack.src && audioRef.current) {
-      // Handle local .mp3 track
-      if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
-        try { ytPlayerRef.current.pauseVideo(); } catch (_) {}
-      }
+    if (currentTrack.src && audioRef.current) {
+      // Handle local .mp3 or S3 track
       audioRef.current.src = currentTrack.src;
-      audioRef.current.load();
       try { audioRef.current.currentTime = 0; } catch (_) {}
 
       const playPromise = audioRef.current.play();
       if (playPromise) {
-        playPromise.then(() => {
-          try { audioRef.current.currentTime = 0; } catch (_) {}
-          setIsPlaying(true);
-          setIsLoading(false);
-        }).catch(() => {
+        playPromise.catch((e) => {
+          console.warn("Auto-play blocked or failed:", e);
           setIsPlaying(false);
           setIsLoading(false);
         });
@@ -361,20 +226,22 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
     } else {
       setIsLoading(false);
     }
-  }, [currentTrackIndex, currentTrack.src, currentTrack.ytId]);
+  }, [currentTrackIndex, currentTrack.src]);
 
   // Audio events for HTML5 audio
   const handleLoadedMetadata = () => {
     if (audioRef.current) {
-      try { audioRef.current.currentTime = 0; } catch (_) {}
       setDuration(audioRef.current.duration || currentTrack.duration || 240);
     }
     setIsLoading(false);
   };
 
-  const handleAudioError = () => {
+  const handleAudioError = (e) => {
+    console.error("Audio playback error:", e);
     setIsLoading(false);
-    handleNext();
+    // Don't auto-skip aggressively, as it causes infinite loops if all tracks fail.
+    // Let the user manually click next, or just pause it.
+    setIsPlaying(false);
   };
 
   const togglePlay = () => {
@@ -393,10 +260,6 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
 
   return (
     <div className="modern-player-wrapper">
-      {/* Hidden YouTube Container */}
-      <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', width: '200px', height: '200px', opacity: 0.01, pointerEvents: 'none' }}>
-        <div ref={ytContainerRef} id="yt-player-container" />
-      </div>
 
       {/* Hidden HTML5 audio element */}
       <audio
@@ -405,9 +268,9 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
         onLoadStart={() => setIsLoading(true)}
         onLoadedMetadata={handleLoadedMetadata}
         onCanPlay={() => setIsLoading(false)}
-        onPlaying={() => setIsLoading(false)}
+        onPlaying={() => { setIsPlaying(true); setIsLoading(false); }}
         onWaiting={() => setIsLoading(true)}
-        onPause={() => setIsLoading(false)}
+        onPause={() => { setIsPlaying(false); setIsLoading(false); }}
         onEnded={handleNext}
         onError={handleAudioError}
       />
@@ -440,8 +303,17 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
           <button className="player-btn" onClick={handleNext} title="Next">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
           </button>
+          {onOpenUpload && (
+            <button className="player-btn search-player-btn" onClick={onOpenUpload} title="Upload New Track">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </button>
+          )}
           {onOpenSearch && (
-            <button className="player-btn search-player-btn" onClick={onOpenSearch} title="Search Online Songs">
+            <button className="player-btn search-player-btn" onClick={onOpenSearch} title="Search Library">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>

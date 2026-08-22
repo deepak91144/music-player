@@ -30,8 +30,7 @@ router.post('/presigned-url', async (req, res) => {
 
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
-      Key: objectKey,
-      ContentType: fileType,
+      Key: objectKey
     });
 
     const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });

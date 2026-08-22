@@ -1,0 +1,222 @@
+export const LOCAL_TRACKS = [
+  {
+    id: 'local_1',
+    title: 'Zara Sa',
+    artist: 'KK, Pritam',
+    album: 'Jannat',
+    genre: 'Bollywood Romance',
+    cover: '/album_midnight.png',
+    src: '/audio/Zara Sa Jannat 320 Kbps.mp3',
+    year: '2008',
+    duration: 308
+  },
+  {
+    id: 'local_2',
+    title: 'Dil Ibaadat',
+    artist: 'KK, Pritam',
+    album: 'Tum Mile',
+    genre: 'Bollywood Romance',
+    cover: '/album_midnight.png',
+    src: '/audio/Dil Ibaadat Tum Mile 320 Kbps.mp3',
+    year: '2009',
+    duration: 329
+  },
+  {
+    id: 'local_3',
+    title: 'Labon Ko',
+    artist: 'KK, Pritam',
+    album: 'Bhool Bhulaiyaa',
+    genre: 'Bollywood Romance',
+    cover: '/album_midnight.png',
+    src: '/audio/Labon Ko Bhool Bhulaiyaa 320 Kbps.mp3',
+    year: '2007',
+    duration: 345
+  },
+  {
+    id: 'local_4',
+    title: 'Beete Lamhein',
+    artist: 'KK, Mithoon',
+    album: 'The Train',
+    genre: 'Bollywood Romance',
+    cover: '/album_midnight.png',
+    src: '/audio/Beete Lamhein The Train 320 Kbps.mp3',
+    year: '2007',
+    duration: 312
+  },
+  {
+    id: 'local_5',
+    title: 'Haan Tu Hain',
+    artist: 'KK, Pritam',
+    album: 'Jannat',
+    genre: 'Bollywood Romance',
+    cover: '/album_midnight.png',
+    src: '/audio/Haan Tu Hain Jannat 320 Kbps.mp3',
+    year: '2008',
+    duration: 325
+  },
+  {
+    id: 'local_6',
+    title: 'Khuda Jaane',
+    artist: 'KK, Shilpa Rao, Vishal-Shekhar',
+    album: 'Bachna Ae Haseeno',
+    genre: 'Bollywood Romance',
+    cover: '/album_midnight.png',
+    src: '/audio/Khuda Jaane Bachna Ae Haseeno 320 Kbps.mp3',
+    year: '2008',
+    duration: 333
+  },
+  {
+    id: 'local_7',
+    title: 'Aankhon Mein Teri',
+    artist: 'KK, Vishal-Shekhar',
+    album: 'Om Shanti Om',
+    genre: 'Bollywood Romance',
+    cover: '/album_midnight.png',
+    src: '/audio/Aankhon Mein Teri Om Shanti Om 320 Kbps.mp3',
+    year: '2007',
+    duration: 278
+  },
+  {
+    id: 'local_8',
+    title: 'Tu Hi Meri Shab Hai',
+    artist: 'KK, Pritam',
+    album: 'Gangster',
+    genre: 'Bollywood Romance',
+    cover: '/album_midnight.png',
+    src: '/audio/Tu Hi Meri Shab Hai Gangster 320 Kbps.mp3',
+    year: '2006',
+    duration: 388
+  },
+  {
+    id: 'local_9',
+    title: 'Kya Mujhe Pyar Hai',
+    artist: 'KK, Pritam',
+    album: 'Woh Lamhe',
+    genre: 'Bollywood Romance',
+    cover: '/album_midnight.png',
+    src: '/audio/Kya Mujhe Pyar Hai Woh Lamhe 320 Kbps.mp3',
+    year: '2006',
+    duration: 268
+  },
+  {
+    id: 'local_10',
+    title: 'Sajde',
+    artist: 'KK, Sunidhi Chauhan, Pritam',
+    album: 'Khatta Meetha',
+    genre: 'Bollywood Romance',
+    cover: '/album_midnight.png',
+    src: '/audio/Sajde Khatta Meetha 320 Kbps.mp3',
+    year: '2010',
+    duration: 305
+  },
+  {
+    id: 'local_11',
+    title: 'O Meri Jaan',
+    artist: 'KK, Pritam',
+    album: 'Life In A Metro',
+    genre: 'Bollywood Romance',
+    cover: '/album_midnight.png',
+    src: '/audio/O Meri Jaan Life In A Metro 320 Kbps.mp3',
+    year: '2007',
+    duration: 298
+  },
+  {
+    id: 'local_12',
+    title: 'Alvida',
+    artist: 'KK, Pritam',
+    album: 'Life In A Metro',
+    genre: 'Bollywood Rock',
+    cover: '/album_midnight.png',
+    src: '/audio/Alvida Life In A Metro 320 Kbps.mp3',
+    year: '2007',
+    duration: 342
+  },
+  {
+    id: 'local_13',
+    title: 'Tujhe Sochta Hoon',
+    artist: 'KK, Pritam',
+    album: 'Jannat 2',
+    genre: 'Bollywood Romance',
+    cover: '/album_midnight.png',
+    src: '/audio/Tujhe Sochta Hoon Jannat 2 320 Kbps.mp3',
+    year: '2012',
+    duration: 315
+  },
+  {
+    id: 'local_14',
+    title: 'Piya Aaye Na',
+    artist: 'KK, Tulsi Kumar, Jeet Gannguli',
+    album: 'Aashiqui 2',
+    genre: 'Bollywood Sad Romance',
+    cover: '/album_midnight.png',
+    src: '/audio/Piya Aaye Na Aashiqui 2 320 Kbps.mp3',
+    year: '2013',
+    duration: 286
+  },
+  {
+    id: 'local_15',
+    title: 'Dil Kyun Yeh Mera',
+    artist: 'KK, Rajesh Roshan',
+    album: 'Kites',
+    genre: 'Bollywood Romance',
+    cover: '/album_midnight.png',
+    src: '/audio/Dil Kyun Yeh Mera Kites 320 Kbps.mp3',
+    year: '2010',
+    duration: 334
+  },
+  {
+    id: 'local_16',
+    title: 'Zindagi Do Pal Ki',
+    artist: 'KK, Rajesh Roshan',
+    album: 'Kites',
+    genre: 'Bollywood Romance',
+    cover: '/album_midnight.png',
+    src: '/audio/Zindagi Do Pal Ki Kites 320 Kbps.mp3',
+    year: '2010',
+    duration: 295
+  },
+  {
+    id: 'local_17',
+    title: 'Make Some Noise For The Desi Boyz',
+    artist: 'KK, Bob, Pritam',
+    album: 'Desi Boyz',
+    genre: 'Bollywood Dance',
+    cover: '/album_midnight.png',
+    src: '/audio/Make Some Noise For The Desi Boyz Desi Boyz 320 Kbps.mp3',
+    year: '2011',
+    duration: 245
+  },
+  {
+    id: 'local_18',
+    title: 'Mat Aazma Re',
+    artist: 'KK, Pritam',
+    album: 'Murder 3',
+    genre: 'Bollywood Romance',
+    cover: '/album_midnight.png',
+    src: '/audio/Mat Aazma Re Murder 3 320 Kbps.mp3',
+    year: '2013',
+    duration: 260
+  },
+  {
+    id: 'local_19',
+    title: 'Abhi Abhi',
+    artist: 'KK, Shreya Ghoshal',
+    album: 'Jism 2',
+    genre: 'Bollywood Romance',
+    cover: '/album_midnight.png',
+    src: '/audio/Abhi Abhi Jism 2 320 Kbps.mp3',
+    year: '2012',
+    duration: 342
+  },
+  {
+    id: 'local_20',
+    title: 'Yun Hi Re',
+    artist: 'Anirudh Ravichander',
+    album: 'David',
+    genre: 'Bollywood',
+    cover: '/album_midnight.png',
+    src: '/audio/Yun Hi Re David 320 Kbps.mp3',
+    year: '2013',
+    duration: 280
+  }
+];

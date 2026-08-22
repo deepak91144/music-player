@@ -4,8 +4,9 @@ import LiveFeed from './LiveFeed';
 import ReactionOverlay from './ReactionOverlay';
 import RoomPage from './RoomPage';
 import MusicExplorer from './MusicExplorer';
-import JioSaavnLyrics from './JioSaavnLyrics';
-import { searchSongs, LOCAL_TRACKS } from './jiosaavnService';
+import SearchModal from './SearchModal';
+import { LOCAL_TRACKS } from './constants';
+import { getSongsFromFirestore } from './musicService';
 import './App.css';
 
 // Import background image
@@ -17,7 +18,7 @@ export default function App() {
   const [tracks, setTracks] = useState([]);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isLyricsOpen, setIsLyricsOpen] = useState(false);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
   // Initialize djSession from localStorage
@@ -40,11 +41,17 @@ export default function App() {
     return arr;
   };
 
-  // Initialize tracks with local audio files on mount
   useEffect(() => {
-    // Start with local audio tracks (KK and Hindi hits)
-    const shuffled = shuffleArray(LOCAL_TRACKS);
-    setTracks(shuffled);
+    const loadTracks = async () => {
+      const dbSongs = await getSongsFromFirestore();
+      if (dbSongs && dbSongs.length > 0) {
+        setTracks(dbSongs);
+      } else {
+        const shuffled = shuffleArray(LOCAL_TRACKS);
+        setTracks(shuffled);
+      }
+    };
+    loadTracks();
   }, []);
 
   useEffect(() => {
@@ -102,6 +109,7 @@ export default function App() {
       djSession={djSession}
       setDjSession={setDjSession}
       onOpenSearch={() => setIsSearchOpen(true)}
+      onOpenUpload={() => setIsUploadOpen(true)}
     />
   );
 
@@ -114,21 +122,34 @@ export default function App() {
         </div>
       )}
 
-      {/* Cloud & Online Music Explorer Modal */}
+      {/* Cloud Upload Modal */}
       <MusicExplorer
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onPlayTrack={handlePlayTrack}
-        onAddToQueue={handleAddToQueue}
+        isOpen={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        onPlayTrack={(song) => {
+          handlePlayTrack(song);
+          setIsUploadOpen(false);
+        }}
+        onAddToQueue={(song) => {
+          handleAddToQueue(song);
+          setIsUploadOpen(false);
+        }}
         currentTrack={currentTrack}
       />
 
-      {/* Lyrics Modal */}
-      <JioSaavnLyrics
-        song={currentTrack}
-        isOpen={isLyricsOpen}
-        onClose={() => setIsLyricsOpen(false)}
+      {/* Library Search Modal */}
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        tracks={tracks}
+        currentTrackIndex={currentTrackIndex}
+        onPlayTrack={(index) => {
+          setCurrentTrackIndex(index);
+          setIsSearchOpen(false);
+        }}
       />
+
+
 
       {djSession ? (
         <RoomPage 
