@@ -157,9 +157,7 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
         {/* Chat Section / Sidebar */}
         <div className={`room-chat-section ${isChatOpen ? 'mobile-open' : ''}`}>
           <div className="mobile-chat-header">
-            <span className="mobile-chat-title">
-              💬 Live Room Chat {totalMessages > 0 && <span className="mobile-chat-badge">({totalMessages})</span>}
-            </span>
+            <span className="mobile-chat-title">💬 Live Room Chat</span>
             <button 
               className="mobile-chat-close-btn" 
               onClick={() => setIsChatOpen(false)}
@@ -225,7 +223,7 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
             </button>
           </div>
 
-          {/* Floating Chat Icon Button with Message Counter Badge */}
+          {/* Floating Chat Icon Button with Green Message Counter Badge */}
           <button 
             className={`floating-chat-btn ${unreadCount > 0 ? 'has-new-messages' : ''}`}
             onClick={handleOpenChat}
@@ -235,9 +233,9 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
-              {(unreadCount > 0 || totalMessages > 0) && (
-                <span className={`chat-message-indicator-badge ${unreadCount > 0 ? 'is-unread' : 'is-total'}`}>
-                  {unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : (totalMessages > 99 ? '99+' : totalMessages)}
+              {unreadCount > 0 && (
+                <span className="chat-message-indicator-badge">
+                  {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
             </div>
