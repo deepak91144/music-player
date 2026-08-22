@@ -1,11 +1,59 @@
 import express from 'express';
 import multer from 'multer';
-import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { s3Client, BUCKET_NAME } from '../config/aws.js';
 
 const router = express.Router();
 const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB max
+
+/**
+ * GET /api/upload/s3-songs
+ * Lists all valid audio files currently in the S3 bucket.
+ */
+router.get('/s3-songs', async (req, res) => {
+  try {
+    if (!s3Client || !BUCKET_NAME) {
+      return res.status(503).json({ error: 'S3 not configured' });
+    }
+
+    const command = new ListObjectsV2Command({
+      Bucket: BUCKET_NAME
+    });
+
+    const response = await s3Client.send(command);
+    const contents = response.Contents || [];
+
+    const songs = contents
+      .filter(item => item.Key && (
+        item.Key.endsWith('.mp3') || 
+        item.Key.endsWith('.m4a') || 
+        item.Key.endsWith('.wav') || 
+        item.Key.endsWith('.flac') || 
+        item.Key.endsWith('.aac') ||
+        item.Key.startsWith('music-uploads/')
+      ))
+      .map(item => {
+        const rawName = item.Key.split('/').pop().replace(/^\d+_/, '').replace(/\.[^/.]+$/, "");
+        const formattedTitle = rawName.replace(/_/g, ' ');
+        return {
+          title: formattedTitle || 'Uploaded S3 Track',
+          artist: 'Cloud Library',
+          album: 'AWS S3',
+          cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop',
+          src: `/api/upload/stream/${item.Key}`,
+          key: item.Key,
+          size: item.Size,
+          createdAt: item.LastModified ? new Date(item.LastModified).getTime() : Date.now()
+        };
+      });
+
+    return res.json({ success: true, count: songs.length, songs });
+  } catch (err) {
+    console.error('List S3 objects error:', err);
+    return res.status(500).json({ error: 'Failed to list S3 objects', details: err.message });
+  }
+});
 
 /**
  * POST /api/upload/presigned-url
@@ -34,9 +82,6 @@ router.post('/presigned-url', async (req, res) => {
     });
 
     const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
-    
-    // Instead of a direct S3 URL which might fail if bucket is private,
-    // return a relative stream URL that the backend will proxy.
     const publicStreamUrl = `/api/upload/stream/${objectKey}`;
 
     return res.json({
@@ -52,16 +97,21 @@ router.post('/presigned-url', async (req, res) => {
 });
 
 /**
- * GET /api/upload/stream/:folder/:file
+ * GET /api/upload/stream/:key
  * Streams a file from S3 bypassing bucket public policies.
  */
-router.get('/stream/:folder/:file', async (req, res) => {
+router.get(/^\/stream\/(.+)$/, async (req, res) => {
   try {
     if (!s3Client || !BUCKET_NAME) {
       return res.status(404).send('S3 not configured');
     }
     
-    const key = `${req.params.folder}/${req.params.file}`;
+    // Extract full S3 object key from regex match
+    const key = req.params[0];
+    if (!key) {
+      return res.status(400).send('File key required');
+    }
+
     const params = {
       Bucket: BUCKET_NAME,
       Key: key,
@@ -86,9 +136,9 @@ router.get('/stream/:folder/:file', async (req, res) => {
 
     s3Item.Body.pipe(res);
   } catch (err) {
-    console.error('Stream error:', err);
+    console.warn('Stream notice for key:', req.params[0], err.message);
     if (!res.headersSent) {
-      res.status(500).send('Stream error');
+      res.status(404).send('Audio file not found in S3');
     }
   }
 });

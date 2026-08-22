@@ -95,9 +95,15 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
 
   const playMedia = useCallback(() => {
     if (audioRef.current) {
-      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+      const p = audioRef.current.play();
+      if (p !== undefined) {
+        p.then(() => setIsPlaying(true)).catch((e) => {
+          console.error("Play failed during user interaction:", e);
+          setIsPlaying(false);
+        });
+      }
     }
-  }, [currentTrack]);
+  }, []);
 
   const forcePlayTrack = useCallback((track) => {
     if (!track) return;
@@ -213,10 +219,15 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
     if (currentTrack.src && audioRef.current) {
       // Handle local .mp3 or S3 track
       audioRef.current.src = currentTrack.src;
+      audioRef.current.load(); // Explicitly load the audio source
+      
       try { audioRef.current.currentTime = 0; } catch (_) {}
 
+      // Only attempt autoplay if we were already playing, or if it's triggered by a user action like 'next'
+      // Browsers block autoplay on initial load anyway.
+      // But since we want to play when the track changes, we try to play, and if blocked, ensure we don't get stuck loading.
       const playPromise = audioRef.current.play();
-      if (playPromise) {
+      if (playPromise !== undefined) {
         playPromise.catch((e) => {
           console.warn("Auto-play blocked or failed:", e);
           setIsPlaying(false);
@@ -237,10 +248,8 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
   };
 
   const handleAudioError = (e) => {
-    console.error("Audio playback error:", e);
+    console.error("Audio playback error on track:", currentTrack?.title, "SRC:", currentTrack?.src, e);
     setIsLoading(false);
-    // Don't auto-skip aggressively, as it causes infinite loops if all tracks fail.
-    // Let the user manually click next, or just pause it.
     setIsPlaying(false);
   };
 
@@ -287,12 +296,12 @@ export default function CassettePlayer({ tracks, setTracks, currentTrackIndex, s
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
           </button>
           <button
-            className={`player-btn play-pause-btn ${isLoading ? 'loading' : ''}`}
+            className={`player-btn play-pause-btn ${isLoading && !isPlaying ? 'loading' : ''}`}
             onClick={togglePlay}
             title={isPlaying ? 'Pause' : 'Play'}
-            disabled={isLoading}
+            // Remove disabled={isLoading} so users can click if it gets stuck
           >
-            {isLoading ? (
+            {isLoading && !isPlaying ? (
               <div className="spinner" />
             ) : isPlaying ? (
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>

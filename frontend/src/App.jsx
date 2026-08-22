@@ -6,7 +6,7 @@ import RoomPage from './RoomPage';
 import MusicExplorer from './MusicExplorer';
 import SearchModal from './SearchModal';
 import { LOCAL_TRACKS } from './constants';
-import { getSongsFromFirestore } from './musicService';
+import { getSongsFromFirestore, cleanAndSyncWithS3 } from './musicService';
 import './App.css';
 
 // Import background image
@@ -41,14 +41,29 @@ export default function App() {
     return arr;
   };
 
+  const handleSyncWithS3 = async () => {
+    showToast('🔄 Cleaning DB & syncing with S3...');
+    const s3Songs = await cleanAndSyncWithS3();
+    if (s3Songs && s3Songs.length > 0) {
+      setTracks(shuffleArray(s3Songs));
+      setCurrentTrackIndex(0);
+      showToast(`✅ Synced and randomized ${s3Songs.length} songs from S3!`);
+    } else {
+      setTracks(shuffleArray(LOCAL_TRACKS));
+      showToast('ℹ️ No S3 songs found. Loaded default library.');
+    }
+  };
+
   useEffect(() => {
     const loadTracks = async () => {
-      const dbSongs = await getSongsFromFirestore();
+      let dbSongs = await getSongsFromFirestore();
+      if (!dbSongs || dbSongs.length === 0) {
+        dbSongs = await cleanAndSyncWithS3();
+      }
       if (dbSongs && dbSongs.length > 0) {
-        setTracks(dbSongs);
+        setTracks(shuffleArray(dbSongs));
       } else {
-        const shuffled = shuffleArray(LOCAL_TRACKS);
-        setTracks(shuffled);
+        setTracks(shuffleArray(LOCAL_TRACKS));
       }
     };
     loadTracks();
@@ -126,6 +141,7 @@ export default function App() {
       <MusicExplorer
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
+        onSyncS3={handleSyncWithS3}
         onPlayTrack={(song) => {
           handlePlayTrack(song);
           setIsUploadOpen(false);

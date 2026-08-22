@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { addSongToFirestore } from './musicService';
 import './MusicExplorer.css';
 
-export default function MusicExplorer({ isOpen, onClose, onPlayTrack, onAddToQueue, currentTrack }) {
+export default function MusicExplorer({ isOpen, onClose, onPlayTrack, onAddToQueue, onSyncS3, currentTrack }) {
   // Upload state
   const [customFile, setCustomFile] = useState(null);
   const [customUrl, setCustomUrl] = useState('');
@@ -121,6 +121,8 @@ export default function MusicExplorer({ isOpen, onClose, onPlayTrack, onAddToQue
       setUploadProgress(100);
     }
 
+    const isBlob = finalSrc && finalSrc.startsWith('blob:');
+
     const songPayload = {
       title: customTitle.trim() || customFile?.name?.replace(/\.[^/.]+$/, "") || 'Custom Track',
       artist: customArtist.trim() || 'Uploaded Track',
@@ -131,7 +133,13 @@ export default function MusicExplorer({ isOpen, onClose, onPlayTrack, onAddToQue
       hasLyrics: false
     };
 
-    const newSong = await addSongToFirestore(songPayload);
+    // Only save to Firestore if it's a real persistent URL (not a temporary blob:)
+    let newSong = songPayload;
+    if (!isBlob) {
+      newSong = await addSongToFirestore(songPayload);
+    } else {
+      newSong = { id: `local_${Date.now()}`, ...songPayload };
+    }
 
     setIsUploading(false);
     setUploadProgress(0);
@@ -238,7 +246,18 @@ export default function MusicExplorer({ isOpen, onClose, onPlayTrack, onAddToQue
               >
                  Upload Track
               </button>
-             
+              {onSyncS3 && (
+                <button
+                  style={{ padding: '12px 16px', background: 'rgba(255, 255, 255, 0.1)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                  onClick={() => {
+                    onSyncS3();
+                    onClose();
+                  }}
+                  title="Wipe broken links and sync all real songs from AWS S3"
+                >
+                  🔄 Sync S3 Bucket
+                </button>
+              )}
             </div>
           </div>
         </div>
