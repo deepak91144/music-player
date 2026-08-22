@@ -201,6 +201,12 @@ export default function LiveChat({ roomId, onSpeakingChange, onCallStatusChange,
     return () => stopRingtone();
   }, [callStatus]);
 
+  // Track onMessageCountChange in a ref to prevent listener re-creation churn
+  const onMessageCountChangeRef = useRef(onMessageCountChange);
+  useEffect(() => {
+    onMessageCountChangeRef.current = onMessageCountChange;
+  });
+
   // Subscribe to room chat messages
   useEffect(() => {
     if (!roomId) return;
@@ -220,15 +226,15 @@ export default function LiveChat({ roomId, onSpeakingChange, onCallStatusChange,
       msgs.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
       
       setMessages(msgs);
-      if (onMessageCountChange) {
-        onMessageCountChange(msgs.length);
+      if (onMessageCountChangeRef.current) {
+        onMessageCountChangeRef.current(msgs.length);
       }
     }, (err) => {
       console.error("LiveChat listener error:", err);
     });
 
     return () => unsubscribe();
-  }, [roomId, onMessageCountChange]);
+  }, [roomId]);
 
   // Subscribe to real-time typing indicators in the room
   useEffect(() => {

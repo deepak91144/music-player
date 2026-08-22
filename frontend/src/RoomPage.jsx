@@ -76,7 +76,7 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
     localStorage.setItem('room_theme', themeId);
   };
 
-  const handleMessageCountChange = (count) => {
+  const handleMessageCountChange = React.useCallback((count) => {
     setTotalMessages(count);
     if (!isChatOpen) {
       setUnreadCount(Math.max(0, count - lastReadCountRef.current));
@@ -84,7 +84,7 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
       lastReadCountRef.current = count;
       setUnreadCount(0);
     }
-  };
+  }, [isChatOpen]);
 
   const handleOpenChat = () => {
     setIsChatOpen(true);
@@ -170,7 +170,7 @@ export default function RoomPage({ djSession, setDjSession, children, onOpenSear
             </button>
           </div>
           <LiveChat 
-            roomId={djSession.roomId} 
+            roomId={djSession.roomId || djSession.id} 
             onSpeakingChange={(isDucked, ratio = 0.4) => setDuckState({ isDucked, duckRatio: ratio })} 
             onCallStatusChange={handleCallStatusChange}
             onMessageCountChange={handleMessageCountChange}
