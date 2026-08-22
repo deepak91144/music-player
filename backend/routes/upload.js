@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { s3Client, BUCKET_NAME } from '../config/aws.js';
 
@@ -34,8 +34,10 @@ router.post('/presigned-url', async (req, res) => {
     });
 
     const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
-    const region = process.env.AWS_REGION || 'us-east-1';
-    const publicStreamUrl = `https://${BUCKET_NAME}.s3.${region}.amazonaws.com/${objectKey}`;
+    
+    // Instead of a direct S3 URL which might fail if bucket is private,
+    // return a relative stream URL that the backend will proxy.
+    const publicStreamUrl = `/api/upload/stream/${objectKey}`;
 
     return res.json({
       success: true,
@@ -46,6 +48,47 @@ router.post('/presigned-url', async (req, res) => {
   } catch (err) {
     console.error('Presigned URL error:', err);
     return res.status(500).json({ error: 'Failed to generate presigned URL', details: err.message });
+  }
+});
+
+/**
+ * GET /api/upload/stream/:key(*)
+ * Streams a file from S3 bypassing bucket public policies.
+ */
+router.get('/stream/:key(*)', async (req, res) => {
+  try {
+    if (!s3Client || !BUCKET_NAME) {
+      return res.status(404).send('S3 not configured');
+    }
+    
+    const params = {
+      Bucket: BUCKET_NAME,
+      Key: req.params.key,
+    };
+
+    if (req.headers.range) {
+      params.Range = req.headers.range;
+    }
+
+    const command = new GetObjectCommand(params);
+    const s3Item = await s3Client.send(command);
+
+    res.status(s3Item.ContentRange ? 206 : 200);
+    res.setHeader('Content-Type', s3Item.ContentType || 'audio/mpeg');
+    if (s3Item.ContentLength) {
+      res.setHeader('Content-Length', s3Item.ContentLength);
+    }
+    if (s3Item.ContentRange) {
+      res.setHeader('Content-Range', s3Item.ContentRange);
+    }
+    res.setHeader('Accept-Ranges', 'bytes');
+
+    s3Item.Body.pipe(res);
+  } catch (err) {
+    console.error('Stream error:', err);
+    if (!res.headersSent) {
+      res.status(500).send('Stream error');
+    }
   }
 });
 

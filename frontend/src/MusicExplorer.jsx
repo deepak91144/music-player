@@ -65,8 +65,11 @@ export default function MusicExplorer({ isOpen, onClose, onPlayTrack, onAddToQue
           });
 
           if (s3PutRes.ok) {
-            console.log('✅ Directly uploaded file to AWS S3 Bucket:', publicStreamUrl);
-            return publicStreamUrl;
+            console.log('✅ Directly uploaded file to AWS S3 Bucket');
+            const finalUrl = publicStreamUrl.startsWith('/') 
+              ? `${API_BASE_URL || 'http://localhost:10000'}${publicStreamUrl}` 
+              : publicStreamUrl;
+            return finalUrl;
           }
         }
       }
