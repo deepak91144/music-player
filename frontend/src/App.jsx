@@ -3,7 +3,7 @@ import CassettePlayer from './CassettePlayer';
 import LiveFeed from './LiveFeed';
 import ReactionOverlay from './ReactionOverlay';
 import RoomPage from './RoomPage';
-import JioSaavnExplorer from './JioSaavnExplorer';
+import MusicExplorer from './MusicExplorer';
 import JioSaavnLyrics from './JioSaavnLyrics';
 import { searchSongs, LOCAL_TRACKS } from './jiosaavnService';
 import './App.css';
@@ -114,8 +114,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Online Music Explorer Modal */}
-      <JioSaavnExplorer
+      {/* Cloud & Online Music Explorer Modal */}
+      <MusicExplorer
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
         onPlayTrack={handlePlayTrack}
