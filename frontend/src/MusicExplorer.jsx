@@ -41,9 +41,11 @@ export default function MusicExplorer({ isOpen, onClose, onPlayTrack, onAddToQue
    * 2. Fallback to Tmpfiles CDN proxy (/api/upload/fallback)
    */
   const uploadToCloudPipeline = async (file) => {
+    const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
+    
     // Strategy 1: AWS S3 Presigned URL (Direct S3 Upload)
     try {
-      const presignedRes = await fetch('/api/upload/presigned-url', {
+      const presignedRes = await fetch(`${API_BASE_URL}/api/upload/presigned-url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -76,7 +78,7 @@ export default function MusicExplorer({ isOpen, onClose, onPlayTrack, onAddToQue
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const fallbackRes = await fetch('/api/upload/fallback', {
+      const fallbackRes = await fetch(`${API_BASE_URL}/api/upload/fallback`, {
         method: 'POST',
         body: formData
       });
